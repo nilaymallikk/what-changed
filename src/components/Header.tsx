@@ -36,7 +36,7 @@ export const Header: React.FC = () => {
             href="/compare"
             className="btn-interactive px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all flex items-center gap-1.5"
           >
-            <span className="hidden sm:inline">Compare ZIPs</span>
+            <span className="hidden sm:inline">Compare Areas</span>
             <span className="sm:hidden">Compare</span>
           </Link>
 

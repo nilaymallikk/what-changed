@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
-  MapPin, ArrowRight, Compass, Utensils, ShoppingBag, 
+  MapPin, ArrowRight, ArrowLeftRight, Compass, Utensils, ShoppingBag, 
   Landmark, Activity, ChevronDown 
 } from 'lucide-react';
 import { isValidUSZip } from '../services/geocoding';
@@ -80,6 +80,8 @@ const FAQS = [
 
 export default function Homepage() {
   const [zipInput, setZipInput] = useState('');
+  const [compareZipA, setCompareZipA] = useState('10001');
+  const [compareZipB, setCompareZipB] = useState('90210');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedBlipId, setSelectedBlipId] = useState<string>('sim_1');
   const [openFaqIdx, setOpenFaqIdx] = useState<number | null>(null);
@@ -90,6 +92,15 @@ export default function Homepage() {
     const cleanZip = zipInput.trim();
     if (isValidUSZip(cleanZip)) {
       router.push(`/area/${cleanZip}`);
+    }
+  };
+
+  const handleCompareSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanA = compareZipA.trim();
+    const cleanB = compareZipB.trim();
+    if (isValidUSZip(cleanA) && isValidUSZip(cleanB)) {
+      router.push(`/compare/${cleanA}-vs-${cleanB}`);
     }
   };
 
@@ -159,6 +170,48 @@ export default function Homepage() {
                 {metro.city} ({metro.zip})
               </button>
             ))}
+          </div>
+
+          {/* DUAL AREA COMPARISON QUICK BAR */}
+          <div className="pt-6 border-t border-zinc-900/90 max-w-xl mx-auto space-y-3 font-mono">
+            <div className="flex items-center justify-between text-xs text-zinc-400 px-1">
+              <span className="font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                <ArrowLeftRight className="w-3.5 h-3.5 text-zinc-400" />
+                <span>Compare Two Neighborhoods</span>
+              </span>
+              <Link href="/compare" className="text-zinc-500 hover:text-white text-[11px] underline transition-colors">
+                View All Pairs →
+              </Link>
+            </div>
+
+            <form onSubmit={handleCompareSearch} className="mono-card p-2 rounded-xl border border-zinc-800 bg-zinc-950/90 flex flex-col sm:flex-row items-center gap-2 shadow-xl">
+              <div className="flex items-center gap-2 w-full flex-1">
+                <input
+                  type="text"
+                  placeholder="ZIP A (e.g. 10001)"
+                  value={compareZipA}
+                  onChange={(e) => setCompareZipA(e.target.value)}
+                  maxLength={5}
+                  className="w-full bg-zinc-900 text-white font-mono text-xs px-3 py-2 rounded-lg border border-zinc-800 focus:outline-none focus:border-white text-center"
+                />
+                <span className="text-zinc-500 text-xs font-bold">vs</span>
+                <input
+                  type="text"
+                  placeholder="ZIP B (e.g. 90210)"
+                  value={compareZipB}
+                  onChange={(e) => setCompareZipB(e.target.value)}
+                  maxLength={5}
+                  className="w-full bg-zinc-900 text-white font-mono text-xs px-3 py-2 rounded-lg border border-zinc-800 focus:outline-none focus:border-white text-center"
+                />
+              </div>
+              <button
+                type="submit"
+                className="btn-interactive w-full sm:w-auto px-4 py-2 bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-700 hover:border-zinc-500 font-bold text-xs uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+              >
+                <span>Compare</span>
+                <ArrowRight className="w-3.5 h-3.5 text-white" />
+              </button>
+            </form>
           </div>
 
         </div>
