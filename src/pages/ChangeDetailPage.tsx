@@ -116,6 +116,13 @@ export const ChangeDetailPage: React.FC = () => {
           <div>
             <h1 className="text-2xl sm:text-4xl font-black text-white">{placeData.name || change.title}</h1>
             <p className="text-sm font-mono text-zinc-400 mt-1">{placeData.category || 'Business Category'}</p>
+            
+            {placeData.address && (
+              <div className="mt-3 inline-flex items-center gap-2 bg-zinc-950 px-3.5 py-1.5 rounded-lg border border-zinc-700 text-xs font-mono font-bold text-white shadow-sm">
+                <MapPin className="w-4 h-4 text-white shrink-0" />
+                <span>{placeData.address}</span>
+              </div>
+            )}
           </div>
 
           {/* Description */}

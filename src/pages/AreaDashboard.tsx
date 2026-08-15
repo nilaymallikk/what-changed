@@ -451,12 +451,12 @@ export const AreaDashboard: React.FC = () => {
                         {placeData.category || 'Business'}
                       </p>
 
-                      {/* Address */}
+                      {/* Prominent Address Badge */}
                       {placeData.address && (
-                        <p className="text-xs text-zinc-400 mt-1.5 flex items-center gap-1 font-mono">
-                          <MapPin className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                          <span>{placeData.address}</span>
-                        </p>
+                        <div className="mt-2.5 bg-zinc-950 px-3 py-1.5 rounded-lg border border-zinc-700 flex items-center gap-2 text-xs text-white font-mono">
+                          <MapPin className="w-4 h-4 text-white shrink-0" />
+                          <span className="font-bold tracking-tight">{placeData.address}</span>
+                        </div>
                       )}
 
                       {/* Description */}
