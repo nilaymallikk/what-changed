@@ -48,7 +48,7 @@ export const ShareModal: React.FC<Props> = ({
 
 Built by @nilaymallikX on What Changed Around Me:`;
 
-  const shareUrl = `https://whatchanged.io/area/${location.zip}`;
+  const shareUrl = `https://whatchangedaround.me/area/${location.zip}`;
 
   const handleCopySummary = () => {
     navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
@@ -164,7 +164,7 @@ Built by @nilaymallikX on What Changed Around Me:`;
       // Bottom Footer Bar
       ctx.fillStyle = '#52525b';
       ctx.font = '16px monospace';
-      ctx.fillText('Built by Nilay Mallik (@nilaymallikX)  •  100% Free Public Open Data  •  whatchanged.io', 70, 560);
+      ctx.fillText('Built by Nilay Mallik (@nilaymallikX)  •  100% Free Public Open Data  •  whatchangedaround.me', 70, 560);
 
       // Convert to blob and download
       const dataUrl = canvas.toDataURL('image/png');
@@ -266,7 +266,7 @@ Built by @nilaymallikX on What Changed Around Me:`;
           {/* Author Badge */}
           <div className="pt-2 border-t border-zinc-900 flex items-center justify-between text-[10px] text-zinc-500">
             <span>Built by Nilay Mallik (@nilaymallikX)</span>
-            <span>whatchanged.io</span>
+            <span>whatchangedaround.me</span>
           </div>
         </div>
 

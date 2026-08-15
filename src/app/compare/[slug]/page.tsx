@@ -11,6 +11,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const parts = slug.split('-vs-');
   const zipA = parts[0] || '10001';
   const zipB = parts[1] || '90210';
+  const url = `https://whatchangedaround.me/compare/${slug}`;
 
   try {
     const [geoA, geoB] = await Promise.all([
@@ -24,23 +25,32 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return {
       title,
       description,
+      alternates: {
+        canonical: url,
+      },
       openGraph: {
         title: `${title} | What Changed Around Me`,
         description,
-        url: `https://whatchanged.io/compare/${slug}`,
+        url,
         siteName: 'What Changed Around Me',
         type: 'website',
+        images: ['/architecture.png'],
       },
       twitter: {
         card: 'summary_large_image',
         title,
         description,
+        creator: '@nilaymallikX',
+        images: ['/architecture.png'],
       }
     };
   } catch {
     return {
       title: `Neighborhood Comparison: ZIP ${zipA} vs ${zipB}`,
       description: `Side-by-side comparison of US ZIP codes on What Changed Around Me.`,
+      alternates: {
+        canonical: url,
+      },
     };
   }
 }

@@ -7,6 +7,7 @@ export default function robots(): MetadataRoute.Robots {
       allow: '/',
       disallow: ['/api/'],
     },
-    sitemap: 'https://whatchanged.io/sitemap.xml',
+    sitemap: 'https://whatchangedaround.me/sitemap.xml',
+    host: 'https://whatchangedaround.me',
   };
 }

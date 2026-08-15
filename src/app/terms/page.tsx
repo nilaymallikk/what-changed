@@ -6,6 +6,9 @@ import { ArrowLeft, FileText } from 'lucide-react';
 export const metadata: Metadata = {
   title: 'Terms of Service',
   description: 'Terms of Service for What Changed Around Me open-access neighborhood intelligence platform.',
+  alternates: {
+    canonical: 'https://whatchangedaround.me/terms',
+  },
 };
 
 export default function TermsPage() {

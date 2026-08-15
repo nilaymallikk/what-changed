@@ -6,6 +6,9 @@ import { ArrowLeft, Shield } from 'lucide-react';
 export const metadata: Metadata = {
   title: 'Privacy Policy',
   description: 'Privacy Policy for What Changed Around Me — Zero Tracking & Client-Side Privacy Guarantees.',
+  alternates: {
+    canonical: 'https://whatchangedaround.me/privacy',
+  },
 };
 
 export default function PrivacyPage() {

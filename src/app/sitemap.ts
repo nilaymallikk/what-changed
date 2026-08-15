@@ -16,7 +16,7 @@ const POPULAR_COMPARE_PAIRS = [
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://whatchanged.io';
+  const baseUrl = 'https://whatchangedaround.me';
   const lastModified = new Date();
 
   // Core static pages
