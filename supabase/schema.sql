@@ -153,6 +153,25 @@ CREATE TABLE IF NOT EXISTS public.data_fetch_runs (
 CREATE INDEX IF NOT EXISTS idx_fetch_runs_area ON public.data_fetch_runs(area_id);
 CREATE INDEX IF NOT EXISTS idx_fetch_runs_status ON public.data_fetch_runs(status);
 
+-- Table 9: census_demographics (ZCTA Statistics)
+CREATE TABLE IF NOT EXISTS public.census_demographics (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    zip_code VARCHAR(10) NOT NULL UNIQUE,
+    zcta VARCHAR(10) NOT NULL,
+    population BIGINT NOT NULL DEFAULT 0,
+    households BIGINT NOT NULL DEFAULT 0,
+    median_income NUMERIC NOT NULL DEFAULT 0,
+    housing_units BIGINT NOT NULL DEFAULT 0,
+    median_age NUMERIC DEFAULT 0,
+    median_home_value NUMERIC DEFAULT 0,
+    source TEXT NOT NULL DEFAULT 'US Census Bureau ACS 5-Year (ZCTA)',
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_census_zip ON public.census_demographics(zip_code);
+CREATE INDEX IF NOT EXISTS idx_census_zcta ON public.census_demographics(zcta);
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE public.areas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sources ENABLE ROW LEVEL SECURITY;
@@ -162,6 +181,7 @@ ALTER TABLE public.snapshot_places ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.changes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_summaries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.data_fetch_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.census_demographics ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read-only access for MVP app
 CREATE POLICY "Allow public read access to areas" ON public.areas FOR SELECT USING (true);
@@ -172,6 +192,7 @@ CREATE POLICY "Allow public read access to snapshot_places" ON public.snapshot_p
 CREATE POLICY "Allow public read access to changes" ON public.changes FOR SELECT USING (true);
 CREATE POLICY "Allow public read access to ai_summaries" ON public.ai_summaries FOR SELECT USING (true);
 CREATE POLICY "Allow public read access to data_fetch_runs" ON public.data_fetch_runs FOR SELECT USING (true);
+CREATE POLICY "Allow public read access to census_demographics" ON public.census_demographics FOR SELECT USING (true);
 
 -- Allow write access for demo & interactive data updates
 CREATE POLICY "Allow anon insert/update to areas" ON public.areas FOR ALL USING (true);
@@ -181,3 +202,5 @@ CREATE POLICY "Allow anon insert/update to places" ON public.places FOR ALL USIN
 CREATE POLICY "Allow anon insert/update to changes" ON public.changes FOR ALL USING (true);
 CREATE POLICY "Allow anon insert/update to ai_summaries" ON public.ai_summaries FOR ALL USING (true);
 CREATE POLICY "Allow anon insert/update to data_fetch_runs" ON public.data_fetch_runs FOR ALL USING (true);
+CREATE POLICY "Allow anon insert/update to census_demographics" ON public.census_demographics FOR ALL USING (true);
+

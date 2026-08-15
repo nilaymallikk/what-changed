@@ -4,7 +4,7 @@ import {
   Zap, Calendar, MapPin, AlertCircle, Info, 
   ChevronRight, ShieldAlert, Filter
 } from 'lucide-react';
-import type { GeoLocation, Change, AISummary } from '../types';
+import type { GeoLocation, Change, AISummary, CensusDemographics } from '../types';
 
 import { defaultGeocodingProvider } from '../services/geocoding';
 import { overpassProvider } from '../services/providers/OverpassProvider';
@@ -12,9 +12,12 @@ import { detectPlaceChanges } from '../services/changeDetection';
 import { generateAISummary } from '../services/aiSummary';
 import { getDemoData } from '../services/demoData';
 import { localDB } from '../services/supabaseClient';
+import { censusService } from '../services/censusService';
 import { MapComponent } from '../components/MapComponent';
+import { CensusDemographicsCard } from '../components/CensusDemographicsCard';
 
-type DateFilter = '7d' | '30d' | '3m' | '6m' | '1y';
+type DateFilter = '30d' | '6m' | '1y' | '5y' | '10y';
+
 
 export const AreaDashboard: React.FC = () => {
   const { zip = '90210' } = useParams<{ zip: string }>();
@@ -22,7 +25,9 @@ export const AreaDashboard: React.FC = () => {
   const [location, setLocation] = useState<GeoLocation | null>(null);
   const [changes, setChanges] = useState<Change[]>([]);
   const [aiSummary, setAISummary] = useState<AISummary | null>(null);
+  const [demographics, setDemographics] = useState<CensusDemographics | null>(null);
   const [selectedChangeId, setSelectedChangeId] = useState<string | null>(null);
+
 
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Resolving location & area data...');
@@ -40,11 +45,16 @@ export const AreaDashboard: React.FC = () => {
     setLoadingMessage(`Resolving location & area data for ZIP ${zipCode}...`);
 
     try {
-      const geoLoc = await defaultGeocodingProvider.resolveZip(zipCode);
+      const [geoLoc, censusData] = await Promise.all([
+        defaultGeocodingProvider.resolveZip(zipCode),
+        censusService.getDemographics(zipCode)
+      ]);
       setLocation(geoLoc);
+      setDemographics(censusData);
 
       const areaId = `area_${geoLoc.zip}`;
       const sourceId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+
 
       const areaObj = {
         id: areaId,
@@ -182,11 +192,12 @@ export const AreaDashboard: React.FC = () => {
     const changeTime = new Date(change.detected_at).getTime();
     const daysDiff = (now - changeTime) / (1000 * 3600 * 24);
 
-    if (dateFilter === '7d' && daysDiff > 7) return false;
     if (dateFilter === '30d' && daysDiff > 30) return false;
-    if (dateFilter === '3m' && daysDiff > 90) return false;
     if (dateFilter === '6m' && daysDiff > 180) return false;
     if (dateFilter === '1y' && daysDiff > 365) return false;
+    if (dateFilter === '5y' && daysDiff > 1825) return false;
+    if (dateFilter === '10y' && daysDiff > 3650) return false;
+
 
     return true;
   });
@@ -267,8 +278,12 @@ export const AreaDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* US CENSUS BUREAU ZCTA DEMOGRAPHICS CARD */}
+        <CensusDemographicsCard demographics={demographics} selectedDateFilter={dateFilter} />
+
         {/* FILTERS BAR */}
         <div className="mono-card p-3.5 rounded-xl border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+
           
           {/* Stat Pills */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 font-mono text-xs">
@@ -308,19 +323,20 @@ export const AreaDashboard: React.FC = () => {
 
           {/* Date Filter Pills */}
           <div className="flex items-center gap-1 bg-zinc-900 p-1 rounded-lg shrink-0 border border-zinc-800 font-mono text-xs">
-            {(['7d', '30d', '3m', '6m', '1y'] as DateFilter[]).map(df => (
+            {(['30d', '6m', '1y', '5y', '10y'] as DateFilter[]).map(df => (
               <button
                 key={df}
                 onClick={() => setDateFilter(df)}
-                className={`px-2.5 py-1 rounded font-semibold capitalize transition-all ${
-                  dateFilter === df ? 'bg-white text-black shadow-sm' : 'text-zinc-400 hover:text-white'
+                className={`px-2.5 py-1 rounded font-semibold transition-all ${
+                  dateFilter === df ? 'bg-white text-black shadow-sm font-black' : 'text-zinc-400 hover:text-white font-medium'
                 }`}
               >
-                {df === '7d' ? '7D' : df === '30d' ? '30D' : df === '3m' ? '3M' : df === '6m' ? '6M' : '1Y'}
+                {df === '30d' ? '30D' : df === '6m' ? '6M' : df === '1y' ? '1Y' : df === '5y' ? '5Y' : '10Y'}
               </button>
             ))}
           </div>
         </div>
+
 
         {/* MAIN LAYOUT */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

@@ -139,3 +139,30 @@ export interface GeoLocation {
   latitude: number;
   longitude: number;
 }
+
+export interface DemographicHistory {
+  population: number;
+  households: number;
+  median_income: number;
+  housing_units: number;
+  median_age: number;
+  median_home_value: number;
+}
+
+export interface CensusDemographics {
+  zip: string;
+  zcta: string;
+  population: number;
+  households: number;
+  median_income: number;
+  housing_units: number;
+  median_age: number;
+  median_home_value: number;
+  history_1y?: DemographicHistory;
+  history_5y?: DemographicHistory;
+  history_10y?: DemographicHistory;
+  updated_at?: string;
+  source?: string;
+}
+
+

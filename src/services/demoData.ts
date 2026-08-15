@@ -380,8 +380,136 @@ export const DEMO_DATASETS: Record<string, DemoDataset> = {
       model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
       is_demo: true
     }
+  },
+  '77005': {
+    area: {
+      id: 'demo_area_77005',
+      zip_code: '77005',
+      city: 'Houston',
+      state: 'TX',
+      country: 'USA',
+      latitude: 29.7164,
+      longitude: -95.4192,
+      created_at: '2026-08-01T08:00:00Z',
+      updated_at: '2026-08-15T10:00:00Z'
+    },
+    changes: [
+      {
+        id: 'demo_tx_1',
+        area_id: 'demo_area_77005',
+        change_type: 'business_opened',
+        entity_type: 'place',
+        entity_id: 'node/881901',
+        title: 'Rice Village Artisanal Bakery',
+        description: 'New organic bakery and specialty espresso bar opened in Rice Village.',
+        old_data: null,
+        new_data: {
+          external_id: 'node/881901',
+          name: 'Rice Village Artisanal Bakery',
+          category: 'Bakery & Cafe',
+          address: '2420 University Blvd, Houston, TX 77005',
+          latitude: 29.7170,
+          longitude: -95.4150,
+          metadata: { amenity: 'cafe', bakery: 'yes', opening_hours: 'Mo-Su 06:30-18:00' }
+        },
+        source_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        detected_at: '2026-08-14T08:30:00Z',
+        event_date: '2026-08-14T08:30:00Z',
+        confidence: 0.98,
+        significance_score: 89,
+        verification_status: 'detected',
+        created_at: '2026-08-14T08:30:00Z',
+        is_demo: true
+      },
+      {
+        id: 'demo_tx_2',
+        area_id: 'demo_area_77005',
+        change_type: 'business_opened',
+        entity_type: 'place',
+        entity_id: 'node/881902',
+        title: 'West U Pilates & Movement',
+        description: 'Boutique fitness studio added to OpenStreetMap snapshot.',
+        old_data: null,
+        new_data: {
+          external_id: 'node/881902',
+          name: 'West U Pilates & Movement',
+          category: 'Gym & Fitness',
+          address: '5510 Morningside Dr, Houston, TX 77005',
+          latitude: 29.7155,
+          longitude: -95.4140,
+          metadata: { leisure: 'fitness_centre' }
+        },
+        source_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        detected_at: '2026-08-11T11:00:00Z',
+        event_date: '2026-08-11T11:00:00Z',
+        confidence: 0.95,
+        significance_score: 81,
+        verification_status: 'detected',
+        created_at: '2026-08-11T11:00:00Z',
+        is_demo: true
+      },
+      {
+        id: 'demo_tx_3',
+        area_id: 'demo_area_77005',
+        change_type: 'business_modified',
+        entity_type: 'place',
+        entity_id: 'node/881903',
+        title: 'Greenbriar Books & Teas',
+        description: 'Store updated operating hours and expanded patio seating.',
+        old_data: {
+          external_id: 'node/881903',
+          name: 'Greenbriar Books',
+          category: 'Retail (Books)',
+          address: '2525 Rice Blvd, Houston, TX 77005',
+          latitude: 29.7180,
+          longitude: -95.4170
+        },
+        new_data: {
+          external_id: 'node/881903',
+          name: 'Greenbriar Books & Teas',
+          category: 'Retail (Books)',
+          address: '2525 Rice Blvd, Houston, TX 77005',
+          latitude: 29.7180,
+          longitude: -95.4170,
+          metadata: { shop: 'books', opening_hours: 'Mo-Su 08:00-21:00' }
+        },
+        source_id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        detected_at: '2026-08-06T15:00:00Z',
+        event_date: '2026-08-06T15:00:00Z',
+        confidence: 0.93,
+        significance_score: 45,
+        verification_status: 'detected',
+        created_at: '2026-08-06T15:00:00Z',
+        is_demo: true
+      }
+    ],
+    aiSummary: {
+      area_id: 'demo_area_77005',
+      period_start: '2026-08-01T00:00:00Z',
+      period_end: '2026-08-15T10:00:00Z',
+      headline: 'New bakery & Pilates studio opening in Rice Village',
+      summary: 'Houston (77005 / ZCTA 77005) recorded new commercial additions including Rice Village Artisanal Bakery on University Blvd and West U Pilates on Morningside Dr, alongside branding updates for Greenbriar Books & Teas.',
+      highlights: [
+        {
+          title: 'Artisanal Bakery on University Blvd',
+          description: 'Rice Village Artisanal Bakery opened at 2420 University Blvd.',
+          importance: 89,
+          change_ids: ['demo_tx_1']
+        },
+        {
+          title: 'West U Pilates Added',
+          description: 'New fitness center listed at 5510 Morningside Dr.',
+          importance: 81,
+          change_ids: ['demo_tx_2']
+        }
+      ],
+      generated_at: '2026-08-15T10:05:00Z',
+      model: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+      is_demo: true
+    }
   }
 };
+
 
 export function getDemoData(zip: string): DemoDataset | null {
   return DEMO_DATASETS[zip.trim()] || null;
