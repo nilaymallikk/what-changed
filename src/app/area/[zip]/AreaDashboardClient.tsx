@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   MapPin, Sparkles, Plus, Minus,
-  ArrowRight, Radio, Search
+  ArrowRight, Radio, Search, Share2, 
+  ArrowLeftRight, Trophy
 } from 'lucide-react';
 import type { GeoLocation, Change, AISummary, CensusDemographics } from '@/types';
 
@@ -15,8 +16,10 @@ import { generateAISummary } from '@/services/aiSummary';
 import { getAreaFallbackData } from '@/services/demoData';
 import { localDB } from '@/services/supabaseClient';
 import { censusService } from '@/services/censusService';
+import { calculateVitalityScore } from '@/services/vitalityScore';
 import { MapComponent } from '@/components/MapComponent';
 import { Sidebar } from '@/components/Sidebar';
+import { ShareModal } from '@/components/ShareModal';
 
 interface Props {
   zip: string;
@@ -29,6 +32,7 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
   const [demographics, setDemographics] = useState<CensusDemographics | null>(null);
   const [selectedChangeId, setSelectedChangeId] = useState<string | null>(null);
   const [activeNavSection, setActiveNavSection] = useState<'overview' | 'demographics' | 'timeline'>('overview');
+  const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
 
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Resolving location & area data...');
@@ -204,6 +208,7 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
   });
 
   const displayChanges = filteredChanges.length > 0 ? filteredChanges : changes;
+  const vitality = calculateVitalityScore(demographics, displayChanges);
 
   // Census calculation deltas based on selected census horizon (1y, 5y, 10y)
   const popVal = demographics?.population ? Number(demographics.population).toLocaleString() : '24,582';
@@ -263,8 +268,24 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
               </h1>
             </div>
 
-            {/* Rescan Button */}
-            <div>
+            {/* Action Buttons: Share, Compare, Rescan */}
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                onClick={() => setIsShareModalOpen(true)}
+                className="btn-interactive px-3.5 py-2.5 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 hover:text-white border border-zinc-800 hover:border-zinc-600 text-xs font-mono font-bold uppercase tracking-wider rounded-lg shadow flex items-center gap-2 cursor-pointer"
+              >
+                <Share2 className="w-4 h-4 text-zinc-400" />
+                <span>Share Report</span>
+              </button>
+
+              <Link
+                href={`/compare?zipA=${location.zip}`}
+                className="btn-interactive px-3.5 py-2.5 bg-zinc-950 hover:bg-zinc-900 text-zinc-300 hover:text-white border border-zinc-800 hover:border-zinc-600 text-xs font-mono font-bold uppercase tracking-wider rounded-lg shadow flex items-center gap-2 cursor-pointer"
+              >
+                <ArrowLeftRight className="w-4 h-4 text-zinc-400" />
+                <span>Compare</span>
+              </Link>
+
               <button
                 onClick={() => loadDashboardData(location.zip, true)}
                 className="btn-interactive px-4 py-2.5 bg-white hover:bg-zinc-200 text-black text-xs font-mono font-black uppercase tracking-wider rounded-lg shadow-lg flex items-center gap-2 shrink-0 cursor-pointer"
@@ -274,6 +295,49 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
               </button>
             </div>
           </header>
+
+          {/* VITALITY SCORE CARD BANNER */}
+          <section className="bg-zinc-950 p-5 rounded-xl border border-zinc-800/90 shadow-xl space-y-3 font-mono">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-white uppercase tracking-wider">
+                <Trophy className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Neighborhood Vitality Index</span>
+                <span className="text-zinc-600">•</span>
+                <span className="text-[11px] font-bold text-emerald-400 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
+                  {vitality.tier}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-zinc-500">Economic Health:</span>
+                <span className="text-xl font-black text-white">{vitality.score}</span>
+                <span className="text-xs text-zinc-500">/ 100</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-zinc-400 font-sans leading-relaxed font-normal">
+              {vitality.tierDescription}
+            </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px]">
+              <div className="bg-black p-2.5 rounded-lg border border-zinc-900">
+                <span className="text-zinc-500 block">5Y Income Shift</span>
+                <strong className="text-emerald-400 font-bold text-xs">+{vitality.metrics.incomeGrowthPct}%</strong>
+              </div>
+              <div className="bg-black p-2.5 rounded-lg border border-zinc-900">
+                <span className="text-zinc-500 block">Tracked Openings</span>
+                <strong className="text-white font-bold text-xs">{vitality.metrics.openedCount} New Places</strong>
+              </div>
+              <div className="bg-black p-2.5 rounded-lg border border-zinc-900">
+                <span className="text-zinc-500 block">Housing Occupancy</span>
+                <strong className="text-white font-bold text-xs">{vitality.metrics.occupancyRatePct}%</strong>
+              </div>
+              <div className="bg-black p-2.5 rounded-lg border border-zinc-900">
+                <span className="text-zinc-500 block">Velocity Weight</span>
+                <strong className="text-white font-bold text-xs">{vitality.breakdown.commercialVelocityScore}/30 pts</strong>
+              </div>
+            </div>
+          </section>
 
           {/* EXECUTIVE NARRATIVE CARD (Matching Screenshot 1) */}
           {aiSummary && (
@@ -552,6 +616,16 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
         </footer>
 
       </main>
+
+      {/* SHARE INFOGRAPHIC MODAL */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        location={location}
+        demographics={demographics}
+        vitality={vitality}
+        changes={displayChanges}
+      />
 
     </div>
   );

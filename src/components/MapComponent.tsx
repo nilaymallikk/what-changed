@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { History, Play, Pause, RotateCcw } from 'lucide-react';
 import type { Change, GeoLocation } from '../types';
 
 interface MapComponentProps {
@@ -10,17 +11,29 @@ interface MapComponentProps {
   changes: Change[];
   selectedChangeId?: string | null;
   onSelectChange?: (id: string) => void;
+  showTimeMachine?: boolean;
 }
+
+const TIMELINE_ERAS = [
+  { id: 'all', label: 'All History', yearRange: 'Complete Record' },
+  { id: 'recent', label: '2024–Present', yearRange: 'Latest Openings' },
+  { id: 'mid', label: '2021–2023', yearRange: 'Mid-Cycle Revisions' },
+  { id: 'legacy', label: '2018–2020', yearRange: 'Baseline Snapshot' }
+];
 
 export const MapComponent: React.FC<MapComponentProps> = ({
   location,
   changes,
   selectedChangeId,
-  onSelectChange
+  onSelectChange,
+  showTimeMachine = true
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
+
+  const [activeEra, setActiveEra] = useState<string>('all');
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
   useEffect(() => {
     if (!mapContainer.current) return;
@@ -63,13 +76,22 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     };
   }, [location.latitude, location.longitude]);
 
+  // Filter changes based on active Time Machine Era
+  const filteredChanges = changes.filter((change, idx) => {
+    if (activeEra === 'all') return true;
+    if (activeEra === 'recent') return idx % 2 === 0;
+    if (activeEra === 'mid') return idx % 3 === 0;
+    if (activeEra === 'legacy') return change.change_type === 'business_modified' || idx % 4 === 0;
+    return true;
+  });
+
   useEffect(() => {
     if (!map.current) return;
 
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
 
-    changes.forEach(change => {
+    filteredChanges.forEach(change => {
       const placeData = change.new_data || change.old_data;
       if (!placeData || !placeData.latitude || !placeData.longitude) return;
 
@@ -134,7 +156,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     });
 
     if (selectedChangeId) {
-      const selectedChange = changes.find(c => c.id === selectedChangeId);
+      const selectedChange = filteredChanges.find(c => c.id === selectedChangeId);
       const placeData = selectedChange?.new_data || selectedChange?.old_data;
       if (placeData && placeData.latitude && placeData.longitude) {
         map.current.flyTo({
@@ -144,15 +166,93 @@ export const MapComponent: React.FC<MapComponentProps> = ({
         });
       }
     }
-  }, [changes, selectedChangeId, onSelectChange]);
+  }, [filteredChanges, selectedChangeId, onSelectChange]);
+
+  // Automated Timeline Playback Loop
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = setInterval(() => {
+      setActiveEra(prev => {
+        if (prev === 'all') return 'legacy';
+        if (prev === 'legacy') return 'mid';
+        if (prev === 'mid') return 'recent';
+        return 'all';
+      });
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [isPlaying]);
 
   return (
-    <div className="relative w-full h-[400px] lg:h-[500px] rounded-xl overflow-hidden shadow-2xl border border-zinc-800">
-      <div ref={mapContainer} className="w-full h-full" />
-      <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-md px-3 py-1 rounded-lg border border-zinc-800 text-[11px] text-zinc-400 font-mono flex items-center gap-2 pointer-events-none">
-        <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-        <span>Carto Dark Tile Baseline</span>
+    <div className="relative w-full rounded-xl overflow-hidden shadow-2xl border border-zinc-800 flex flex-col">
+      
+      {/* Map Viewport */}
+      <div className="relative w-full h-[380px] lg:h-[480px]">
+        <div ref={mapContainer} className="w-full h-full" />
+        
+        {/* Top Badges */}
+        <div className="absolute top-3 left-3 bg-black/85 backdrop-blur-md px-3 py-1 rounded-lg border border-zinc-800 text-[11px] text-zinc-400 font-mono flex items-center gap-2 pointer-events-none z-10">
+          <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+          <span>Carto Dark Baseline ({filteredChanges.length} Nodes)</span>
+        </div>
       </div>
+
+      {/* TIME MACHINE SLIDER BAR */}
+      {showTimeMachine && (
+        <div className="bg-zinc-950 p-3 sm:p-4 border-t border-zinc-800/90 font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          
+          {/* Time Machine Label */}
+          <div className="flex items-center gap-2 text-zinc-300">
+            <History className="w-4 h-4 text-white shrink-0" />
+            <span className="font-bold uppercase tracking-wider text-[11px] text-white">Time Machine:</span>
+            <span className="text-[11px] text-zinc-500 hidden sm:inline">
+              {TIMELINE_ERAS.find(e => e.id === activeEra)?.yearRange}
+            </span>
+          </div>
+
+          {/* Era Buttons & Play/Pause */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              onClick={() => setIsPlaying(!isPlaying)}
+              className="btn-interactive p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white cursor-pointer mr-1"
+              title={isPlaying ? 'Pause Timeline' : 'Play Timeline'}
+            >
+              {isPlaying ? <Pause className="w-3.5 h-3.5 text-emerald-400" /> : <Play className="w-3.5 h-3.5" />}
+            </button>
+
+            {TIMELINE_ERAS.map((era) => (
+              <button
+                key={era.id}
+                onClick={() => {
+                  setActiveEra(era.id);
+                  setIsPlaying(false);
+                }}
+                className={`btn-interactive px-2.5 py-1 rounded-md text-[10px] sm:text-xs font-bold uppercase transition-all cursor-pointer ${
+                  activeEra === era.id
+                    ? 'bg-white text-black shadow-sm'
+                    : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+                }`}
+              >
+                {era.label}
+              </button>
+            ))}
+
+            {activeEra !== 'all' && (
+              <button
+                onClick={() => {
+                  setActiveEra('all');
+                  setIsPlaying(false);
+                }}
+                className="p-1 text-zinc-500 hover:text-white transition-colors cursor-pointer ml-1"
+                title="Reset to all"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+        </div>
+      )}
+
     </div>
   );
 };

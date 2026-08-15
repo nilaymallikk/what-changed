@@ -33,6 +33,14 @@ export const Header: React.FC = () => {
         {/* Navigation Links */}
         <nav className="flex items-center gap-2 sm:gap-4 font-mono text-xs">
           <Link
+            href="/compare"
+            className="btn-interactive px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all flex items-center gap-1.5"
+          >
+            <span className="hidden sm:inline">Compare ZIPs</span>
+            <span className="sm:hidden">Compare</span>
+          </Link>
+
+          <Link
             href="/explore"
             className="btn-interactive px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all flex items-center gap-1.5"
           >
