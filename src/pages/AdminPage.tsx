@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  Shield, Database, Layers, Sparkles, Activity, FileText, ArrowLeft 
+  Shield, Database, Layers, Sparkles, Activity, FileText, ArrowLeft, Globe 
 } from 'lucide-react';
 import { localDB } from '../services/supabaseClient';
 import { overpassProvider } from '../services/providers/OverpassProvider';
+import { wikipediaProvider } from '../services/providers/WikipediaProvider';
 import { detectPlaceChanges } from '../services/changeDetection';
 import { generateAISummary } from '../services/aiSummary';
 import type { DataFetchRun } from '../types';
@@ -43,7 +44,7 @@ export const AdminPage: React.FC = () => {
     try {
       const areaId = `area_${targetZip}`;
       const fetchResult = await overpassProvider.fetchNearbyData(34.0736, -118.4004);
-      addLog(`Fetch completed! Retreived ${fetchResult.places.length} normalized place records.`);
+      addLog(`Fetch completed! Retrieved ${fetchResult.places.length} normalized place records.`);
       
       const newSnap = {
         id: `snap_${Date.now()}`,
@@ -71,6 +72,32 @@ export const AdminPage: React.FC = () => {
       loadAdminStats();
     } catch (err: any) {
       addLog(`Error fetching OSM data: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleFetchWikipedia = async () => {
+    setIsProcessing(true);
+    addLog(`Initiating Wikipedia Geosearch query for ZIP ${targetZip}...`);
+    try {
+      const areaId = `area_${targetZip}`;
+      const fetchResult = await wikipediaProvider.fetchNearbyData(34.0736, -118.4004);
+      addLog(`Wikipedia Geosearch completed! Found ${fetchResult.places.length} landmark records.`);
+      
+      localDB.saveFetchRun({
+        id: `run_wiki_${Date.now()}`,
+        source_id: 'b2eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+        area_id: areaId,
+        started_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
+        status: 'success',
+        records_found: fetchResult.places.length
+      });
+
+      loadAdminStats();
+    } catch (err: any) {
+      addLog(`Error fetching Wikipedia data: ${err.message}`);
     } finally {
       setIsProcessing(false);
     }
@@ -197,6 +224,15 @@ export const AdminPage: React.FC = () => {
             >
               <Database className="w-4 h-4" />
               <span>Fetch OSM Data</span>
+            </button>
+
+            <button
+              onClick={handleFetchWikipedia}
+              disabled={isProcessing}
+              className="px-4 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl shadow transition-all flex items-center gap-2 disabled:opacity-50"
+            >
+              <Globe className="w-4 h-4" />
+              <span>Fetch Wikipedia Landmarks</span>
             </button>
 
             <button

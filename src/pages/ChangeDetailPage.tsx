@@ -117,6 +117,16 @@ export const ChangeDetailPage: React.FC = () => {
             <h1 className="text-2xl sm:text-4xl font-black text-white">{placeData.name || change.title}</h1>
             <p className="text-sm font-mono text-zinc-400 mt-1">{placeData.category || 'Business Category'}</p>
             
+            {placeData.metadata?.image_url && (
+              <div className="mt-4 rounded-xl overflow-hidden border border-zinc-800 max-h-72 bg-zinc-950">
+                <img
+                  src={placeData.metadata.image_url}
+                  alt={placeData.name || change.title}
+                  className="w-full h-64 object-cover"
+                />
+              </div>
+            )}
+
             {placeData.address && (
               <div className="mt-3 inline-flex items-center gap-2 bg-zinc-950 px-3.5 py-1.5 rounded-lg border border-zinc-700 text-xs font-mono font-bold text-white shadow-sm">
                 <MapPin className="w-4 h-4 text-white shrink-0" />
@@ -168,9 +178,9 @@ export const ChangeDetailPage: React.FC = () => {
             <div className="bg-zinc-950 p-4 rounded-lg border border-zinc-800">
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Data Source</span>
               <div className="text-base font-bold text-white flex items-center gap-1">
-                <span>OpenStreetMap</span>
+                <span>{placeData.metadata?.wiki_url ? 'Wikipedia' : 'OpenStreetMap'}</span>
                 <a
-                  href="https://www.openstreetmap.org/"
+                  href={placeData.metadata?.wiki_url || "https://www.openstreetmap.org/"}
                   target="_blank"
                   rel="noreferrer"
                   className="text-zinc-400 hover:text-white"

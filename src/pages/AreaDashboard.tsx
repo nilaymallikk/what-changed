@@ -505,6 +505,18 @@ export const AreaDashboard: React.FC = () => {
                       {placeData.category || 'Business'}
                     </p>
 
+                    {/* Thumbnail if available from Wikipedia */}
+                    {placeData.metadata?.image_url && (
+                      <div className="mt-2.5 rounded-lg overflow-hidden border border-zinc-800 max-h-48 bg-zinc-950">
+                        <img
+                          src={placeData.metadata.image_url}
+                          alt={placeData.name || change.title}
+                          className="w-full h-40 object-cover hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                        />
+                      </div>
+                    )}
+
                     {/* Prominent Address Badge */}
                     {placeData.address && (
                       <div className="mt-2.5 bg-zinc-950 px-3 py-1.5 rounded-lg border border-zinc-700 flex items-center gap-2 text-xs text-white font-mono">
@@ -535,7 +547,19 @@ export const AreaDashboard: React.FC = () => {
                         <span>Event Date: {dateStr}</span>
                       </span>
                       <div className="flex items-center gap-3">
-                        <span className="text-zinc-600">OpenStreetMap</span>
+                        {placeData.metadata?.wiki_url ? (
+                          <a
+                            href={placeData.metadata.wiki_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-zinc-400 hover:text-white underline"
+                          >
+                            Wikipedia
+                          </a>
+                        ) : (
+                          <span className="text-zinc-600">OpenStreetMap</span>
+                        )}
                         <Link
                           to={`/area/${location.zip}/change/${change.id}`}
                           className="font-bold text-white hover:underline flex items-center gap-0.5"

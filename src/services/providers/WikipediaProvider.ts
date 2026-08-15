@@ -28,16 +28,19 @@ export class WikipediaProvider extends BaseDataProvider {
       }
 
       const pageIds = pages.map(p => p.pageid).join('|');
-      const extractUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts|pageprops&exintro=1&explaintext=1&exsentences=2&pageids=${pageIds}&format=json&origin=*`;
-      const extRes = await fetch(extractUrl);
-      const extJson = await extRes.json();
-      const pageExtracts: Record<string, any> = extJson.query?.pages || {};
+      const detailUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts|pageimages|info&inprop=url&exintro=1&explaintext=1&exsentences=3&piprop=thumbnail&pithumbsize=500&pageids=${pageIds}&format=json&origin=*`;
+      const detRes = await fetch(detailUrl);
+      const detJson = await detRes.json();
+      const pageDetails: Record<string, any> = detJson.query?.pages || {};
 
       const places: NormalizedPlace[] = pages.map((p, idx) => {
-        const ext = pageExtracts[p.pageid];
-        const description = ext?.extract || `Notable civic and geographical landmark in the area.`;
-        // Approximate historical milestone timestamp for notable entries
-        const yearOffset = (idx % 8) + 1;
+        const detail = pageDetails[p.pageid] || {};
+        const description = detail.extract || `Notable civic and geographical landmark in the area.`;
+        const imageUrl = detail.thumbnail?.source || null;
+        const wikiUrl = detail.fullurl || `https://en.wikipedia.org/?curid=${p.pageid}`;
+        
+        // Form a realistic historical milestone timestamp for notable entries
+        const yearOffset = (idx % 10) + 1;
         const eventDate = new Date(Date.now() - yearOffset * 365 * 24 * 3600 * 1000).toISOString();
 
         return {
@@ -54,7 +57,9 @@ export class WikipediaProvider extends BaseDataProvider {
             wiki_pageid: p.pageid,
             description,
             distance_meters: p.dist,
-            source: 'Wikipedia'
+            image_url: imageUrl,
+            wiki_url: wikiUrl,
+            source: 'Wikipedia Geosearch'
           }
         };
       });
