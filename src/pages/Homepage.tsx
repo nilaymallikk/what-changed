@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { 
   MapPin, ArrowRight, Compass, Utensils, ShoppingBag, 
   Landmark, Activity, ChevronDown 
@@ -487,12 +487,20 @@ export const Homepage: React.FC = () => {
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t border-zinc-900 py-8 text-center text-xs text-zinc-500 font-mono relative z-10">
-        <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© 2026 What Changed Around Me • Hyperlocal Community Intelligence</p>
-          <div className="flex items-center gap-4 text-zinc-400">
-            <span className="hover:text-white transition-colors cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-              Back to Top ↑
+      <footer className="border-t border-zinc-900 py-10 text-xs text-zinc-500 font-mono relative z-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="space-y-1 text-center md:text-left">
+            <p className="text-white font-bold tracking-wider uppercase">What Changed Around Me</p>
+            <p className="text-zinc-500 text-[11px]">© 2026 Open-Access Spatial Intelligence & Demographic Trends</p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-5 text-zinc-400 text-xs">
+            <Link to="/explore" className="hover:text-white transition-colors">Explore</Link>
+            <Link to="/data-sources" className="hover:text-white transition-colors">Data Sources</Link>
+            <Link to="/docs" className="hover:text-white transition-colors">API Docs</Link>
+            <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
+            <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+            <span className="hover:text-white transition-colors cursor-pointer text-zinc-500" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+              Top ↑
             </span>
           </div>
         </div>

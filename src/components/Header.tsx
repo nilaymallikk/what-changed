@@ -1,21 +1,8 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Search, Zap } from 'lucide-react';
-import { isValidUSZip } from '../services/geocoding';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Zap, Compass, Database, BookOpen } from 'lucide-react';
 
 export const Header: React.FC = () => {
-  const [zipInput, setZipInput] = useState('');
-  const navigate = useNavigate();
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanZip = zipInput.trim();
-    if (isValidUSZip(cleanZip)) {
-      navigate(`/area/${cleanZip}`);
-      setZipInput('');
-    }
-  };
-
   return (
     <header className="sticky top-0 z-50 bg-black/90 backdrop-blur-md border-b border-zinc-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
@@ -26,42 +13,41 @@ export const Header: React.FC = () => {
             <Zap className="w-4 h-4 fill-black" />
           </div>
           <div>
-            <span className="text-sm sm:text-base font-black tracking-wider text-white uppercase">
+            <span className="text-sm sm:text-base font-black tracking-wider text-white uppercase font-sans">
               WHAT CHANGED <span className="text-zinc-400">AROUND ME</span>
             </span>
           </div>
         </Link>
 
-        {/* Search Input */}
-        <form onSubmit={handleSearch} className="flex-1 max-w-xs hidden sm:block">
-          <div className="relative">
-            <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search US ZIP (e.g. 90210)..."
-              value={zipInput}
-              onChange={(e) => setZipInput(e.target.value)}
-              className="w-full bg-zinc-950 text-white text-xs pl-9 pr-20 py-2 rounded-lg border border-zinc-800 focus:outline-none focus:border-white transition-all placeholder:text-zinc-600 font-mono"
-              maxLength={5}
-            />
-            <button
-              type="submit"
-              className="absolute right-1 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-white hover:bg-zinc-200 text-black font-extrabold text-[10px] uppercase rounded transition-colors"
-            >
-              GO
-            </button>
-          </div>
-        </form>
-
-        {/* Right Action */}
-        <div className="flex items-center gap-3">
+        {/* Navigation Links */}
+        <nav className="flex items-center gap-2 sm:gap-4 font-mono text-xs">
           <Link
-            to="/"
-            className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-mono transition-colors"
+            to="/explore"
+            className="btn-interactive px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all flex items-center gap-1.5"
           >
-            Explore Areas
+            <Compass className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="hidden sm:inline">Explore Metros</span>
+            <span className="sm:hidden">Explore</span>
           </Link>
-        </div>
+
+          <Link
+            to="/data-sources"
+            className="btn-interactive px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all flex items-center gap-1.5"
+          >
+            <Database className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="hidden sm:inline">Data Sources</span>
+            <span className="sm:hidden">Data</span>
+          </Link>
+
+          <Link
+            to="/docs"
+            className="btn-interactive px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all flex items-center gap-1.5"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-zinc-400" />
+            <span className="hidden sm:inline">API Docs</span>
+            <span className="sm:hidden">Docs</span>
+          </Link>
+        </nav>
       </div>
     </header>
   );
