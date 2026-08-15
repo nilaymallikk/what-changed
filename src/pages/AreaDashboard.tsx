@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   Zap, Calendar, MapPin, AlertCircle, Info, 
-  ChevronRight, ShieldAlert, Filter
+  ChevronRight, ShieldAlert, Filter, Clock
 } from 'lucide-react';
-import type { GeoLocation, Change, AISummary, CensusDemographics } from '../types';
+import type { GeoLocation, Change, AISummary, CensusDemographics, DateFilter } from '../types';
 
 import { defaultGeocodingProvider } from '../services/geocoding';
 import { overpassProvider } from '../services/providers/OverpassProvider';
@@ -16,9 +16,6 @@ import { censusService } from '../services/censusService';
 import { MapComponent } from '../components/MapComponent';
 import { CensusDemographicsCard } from '../components/CensusDemographicsCard';
 
-type DateFilter = '30d' | '6m' | '1y' | '5y' | '10y';
-
-
 export const AreaDashboard: React.FC = () => {
   const { zip = '90210' } = useParams<{ zip: string }>();
 
@@ -28,14 +25,12 @@ export const AreaDashboard: React.FC = () => {
   const [demographics, setDemographics] = useState<CensusDemographics | null>(null);
   const [selectedChangeId, setSelectedChangeId] = useState<string | null>(null);
 
-
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Resolving location & area data...');
   const [error, setError] = useState<string | null>(null);
-  const [isDemo, setIsDemo] = useState(false);
 
   // Filters
-  const [dateFilter, setDateFilter] = useState<DateFilter>('30d');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('1y');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -55,7 +50,6 @@ export const AreaDashboard: React.FC = () => {
       const areaId = `area_${geoLoc.zip}`;
       const sourceId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
 
-
       const areaObj = {
         id: areaId,
         zip_code: geoLoc.zip,
@@ -69,15 +63,14 @@ export const AreaDashboard: React.FC = () => {
       };
       localDB.saveArea(areaObj);
 
-      let storedChanges = localDB.getChanges(areaId);
-      let storedSummary = localDB.getAISummary(areaId);
+      const storedChanges = localDB.getChanges(areaId);
+      const storedSummary = localDB.getAISummary(areaId);
 
       const demoDataset = getDemoData(geoLoc.zip);
 
       if (storedChanges.length > 0) {
         setChanges(storedChanges);
         setAISummary(storedSummary);
-        setIsDemo(storedChanges.some(c => c.is_demo));
         setLoading(false);
         return;
       }
@@ -85,14 +78,13 @@ export const AreaDashboard: React.FC = () => {
       if (demoDataset) {
         setChanges(demoDataset.changes);
         setAISummary(demoDataset.aiSummary);
-        setIsDemo(true);
         localDB.saveChanges(demoDataset.changes);
         localDB.saveAISummary(demoDataset.aiSummary);
         setLoading(false);
         return;
       }
 
-      setLoadingMessage("Fetching live OpenStreetMap data...");
+      setLoadingMessage("Fetching live OpenStreetMap data with metadata timestamps...");
       const fetchResult = await overpassProvider.fetchNearbyData(geoLoc.latitude, geoLoc.longitude);
 
       setLoadingMessage("Comparing snapshot data and detecting changes...");
@@ -130,7 +122,6 @@ export const AreaDashboard: React.FC = () => {
 
       setChanges(detectedChanges);
       setAISummary(newAISummary);
-      setIsDemo(false);
 
     } catch (err: any) {
       console.error("Area loading error:", err);
@@ -188,16 +179,19 @@ export const AreaDashboard: React.FC = () => {
       if (!nameMatch && !catMatch) return false;
     }
 
+    if (dateFilter === 'all') return true;
+
     const now = Date.now();
-    const changeTime = new Date(change.detected_at).getTime();
-    const daysDiff = (now - changeTime) / (1000 * 3600 * 24);
+    const eventTime = new Date(change.event_date || change.detected_at).getTime();
+    if (isNaN(eventTime)) return true;
+
+    const daysDiff = (now - eventTime) / (1000 * 3600 * 24);
 
     if (dateFilter === '30d' && daysDiff > 30) return false;
     if (dateFilter === '6m' && daysDiff > 180) return false;
     if (dateFilter === '1y' && daysDiff > 365) return false;
     if (dateFilter === '5y' && daysDiff > 1825) return false;
     if (dateFilter === '10y' && daysDiff > 3650) return false;
-
 
     return true;
   });
@@ -322,8 +316,8 @@ export const AreaDashboard: React.FC = () => {
           </div>
 
           {/* Date Filter Pills */}
-          <div className="flex items-center gap-1 bg-zinc-900 p-1 rounded-lg shrink-0 border border-zinc-800 font-mono text-xs">
-            {(['30d', '6m', '1y', '5y', '10y'] as DateFilter[]).map(df => (
+          <div className="flex items-center gap-1 bg-zinc-900 p-1 rounded-lg shrink-0 border border-zinc-800 font-mono text-xs overflow-x-auto">
+            {(['all', '30d', '6m', '1y', '5y', '10y'] as DateFilter[]).map(df => (
               <button
                 key={df}
                 onClick={() => setDateFilter(df)}
@@ -331,12 +325,11 @@ export const AreaDashboard: React.FC = () => {
                   dateFilter === df ? 'bg-white text-black shadow-sm font-black' : 'text-zinc-400 hover:text-white font-medium'
                 }`}
               >
-                {df === '30d' ? '30D' : df === '6m' ? '6M' : df === '1y' ? '1Y' : df === '5y' ? '5Y' : '10Y'}
+                {df === 'all' ? 'ALL TIME' : df === '30d' ? '30D' : df === '6m' ? '6M' : df === '1y' ? '1Y' : df === '5y' ? '5Y' : '10Y'}
               </button>
             ))}
           </div>
         </div>
-
 
         {/* MAIN LAYOUT */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -354,17 +347,35 @@ export const AreaDashboard: React.FC = () => {
 
             {/* TIMELINE */}
             <div className="mono-card p-5 rounded-xl border border-zinc-800 space-y-3">
-              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-white" />
-                <span>Chronological Timeline</span>
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-white" />
+                  <span>Chronological Timeline</span>
+                </h3>
+                <span className="text-[10px] font-mono text-zinc-500">
+                  Showing {filteredChanges.length} of {changes.length} total events
+                </span>
+              </div>
 
-              <div className="space-y-3 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-zinc-800">
+              <div className="space-y-3 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-zinc-800 max-h-[420px] overflow-y-auto pr-1">
                 {filteredChanges.length === 0 ? (
-                  <p className="text-xs text-zinc-500 py-2 font-mono">No changes found for selected filters.</p>
+                  <div className="pl-8 py-3 font-mono text-xs text-zinc-500">
+                    <p>No changes found in the selected {dateFilter.toUpperCase()} window.</p>
+                    {changes.length > 0 && (
+                      <button
+                        onClick={() => setDateFilter('all')}
+                        className="mt-2 text-[11px] text-white underline hover:text-zinc-300"
+                      >
+                        Switch to ALL TIME ({changes.length} events) →
+                      </button>
+                    )}
+                  </div>
                 ) : (
                   filteredChanges.map(c => {
-                    const dateStr = new Date(c.detected_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                    const eventDate = new Date(c.event_date || c.detected_at);
+                    const dateStr = !isNaN(eventDate.getTime()) 
+                      ? eventDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                      : 'Recent';
                     const isSelected = selectedChangeId === c.id;
 
                     return (
@@ -381,8 +392,13 @@ export const AreaDashboard: React.FC = () => {
                           isSelected ? 'bg-zinc-900 border-white shadow-lg' : 'bg-zinc-950 hover:bg-zinc-900 border-zinc-800'
                         }`}>
                           <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400 mb-0.5">
-                            <span>{dateStr}</span>
-                            <span className="uppercase font-bold tracking-wider text-white">{c.change_type.replace('business_', '')}</span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-zinc-500" />
+                              {dateStr}
+                            </span>
+                            <span className="uppercase font-bold tracking-wider text-white">
+                              {c.change_type === 'business_opened' ? '+ NEW' : c.change_type === 'business_removed' ? '− UNLISTED' : 'Δ MODIFIED'}
+                            </span>
                           </div>
                           <p className="font-bold text-white group-hover:text-zinc-300">{c.title}</p>
                         </div>
@@ -414,16 +430,29 @@ export const AreaDashboard: React.FC = () => {
             {/* CHANGE CARDS */}
             <div className="space-y-3">
               {filteredChanges.length === 0 ? (
-                <div className="mono-card p-8 rounded-xl border border-zinc-800 text-center space-y-2">
+                <div className="mono-card p-8 rounded-xl border border-zinc-800 text-center space-y-3 font-mono">
                   <Info className="w-8 h-8 text-zinc-500 mx-auto" />
-                  <p className="text-sm font-bold text-zinc-300 uppercase tracking-wider">No changes detected</p>
-                  <p className="text-xs text-zinc-500 font-mono">Try adjusting your date filters.</p>
+                  <p className="text-sm font-bold text-zinc-300 uppercase tracking-wider">No changes in selected window</p>
+                  <p className="text-xs text-zinc-500">
+                    No establishments match your {dateFilter.toUpperCase()} filter.
+                  </p>
+                  {changes.length > 0 && (
+                    <button
+                      onClick={() => setDateFilter('all')}
+                      className="px-4 py-2 bg-white text-black font-bold text-xs rounded-lg uppercase tracking-wider hover:bg-zinc-200 transition-colors"
+                    >
+                      Show All {changes.length} Historical Places
+                    </button>
+                  )}
                 </div>
               ) : (
                 filteredChanges.map(change => {
                   const placeData = change.new_data || change.old_data || {};
                   const isSelected = selectedChangeId === change.id;
-                  const dateStr = new Date(change.detected_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                  const eventDate = new Date(change.event_date || change.detected_at);
+                  const dateStr = !isNaN(eventDate.getTime())
+                    ? eventDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                    : 'Recent';
                   const confidencePct = Math.round((change.confidence || 0.9) * 100);
 
                   return (
@@ -445,7 +474,7 @@ export const AreaDashboard: React.FC = () => {
                         )}
                         {change.change_type === 'business_removed' && (
                           <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-zinc-800 text-zinc-300 border border-zinc-700 tracking-wider">
-                            − UNLISTED
+                            − UNLISTED / CLOSED
                           </span>
                         )}
                         {change.change_type === 'business_modified' && (
@@ -455,7 +484,7 @@ export const AreaDashboard: React.FC = () => {
                         )}
 
                         <span className="text-[11px] text-zinc-400">
-                          {confidencePct}% match
+                          {confidencePct}% confidence
                         </span>
                       </div>
 
@@ -485,14 +514,17 @@ export const AreaDashboard: React.FC = () => {
                         <div className="mt-3 bg-zinc-950 border border-zinc-800 p-2.5 rounded-lg flex items-start gap-2 text-[11px] text-zinc-400 leading-relaxed font-mono">
                           <ShieldAlert className="w-4 h-4 text-white shrink-0 mt-0.5" />
                           <p>
-                            <strong>Disclaimer:</strong> Indicates entity absence in the latest OpenStreetMap snapshot.
+                            <strong>Notice:</strong> Entity marked as closed/disused or absent in the latest OpenStreetMap snapshot.
                           </p>
                         </div>
                       )}
 
                       {/* Card Footer */}
                       <div className="mt-3 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-500 font-mono">
-                        <span>{dateStr}</span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-zinc-500" />
+                          <span>Event Date: {dateStr}</span>
+                        </span>
                         <div className="flex items-center gap-3">
                           <span className="text-zinc-600">OpenStreetMap</span>
                           <Link
@@ -514,10 +546,10 @@ export const AreaDashboard: React.FC = () => {
             <div className="mono-card p-4 rounded-xl border border-zinc-800 space-y-1.5 mt-6 font-mono text-xs">
               <h4 className="font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
                 <Info className="w-4 h-4 text-white" />
-                <span>How We Know</span>
+                <span>Data Provenance & Methodology</span>
               </h4>
               <p className="text-zinc-400 leading-relaxed">
-                Changes are calculated by matching entity geographic nodes and OSM tag attributes between historical point-in-time snapshots.
+                Changes are calculated by analyzing OpenStreetMap revision metadata, creation timestamps, and tag attributes (such as active vs disused/closed POIs) between snapshots.
               </p>
             </div>
           </div>

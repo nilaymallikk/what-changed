@@ -31,11 +31,8 @@ export const Homepage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden flex flex-col justify-between">
+    <div className="min-h-screen bg-black text-white relative flex flex-col justify-between">
       
-      {/* Subtle Monochrome Geometric Grid Lines Background */}
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f1f23_1px,transparent_1px),linear-gradient(to_bottom,#1f1f23_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-30 pointer-events-none" />
-
       {/* HERO SECTION */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24 text-center space-y-8 relative z-10 animate-fade-in-up">
         
@@ -65,7 +62,7 @@ export const Homepage: React.FC = () => {
               </div>
               <input
                 type="text"
-                placeholder="Enter 5-digit ZIP (e.g. 90210)..."
+                placeholder="Enter 5-digit ZIP (e.g. 90210, 77005)..."
                 value={zipInput}
                 onChange={(e) => {
                   setZipInput(e.target.value);
@@ -92,6 +89,7 @@ export const Homepage: React.FC = () => {
             <span className="text-zinc-500 mr-1">Popular:</span>
             {[
               { zip: '90210', label: 'Beverly Hills' },
+              { zip: '77005', label: 'Houston' },
               { zip: '10001', label: 'New York' },
               { zip: '33139', label: 'Miami Beach' },
               { zip: '60611', label: 'Chicago' },

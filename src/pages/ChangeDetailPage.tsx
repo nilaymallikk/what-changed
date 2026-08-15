@@ -54,7 +54,7 @@ export const ChangeDetailPage: React.FC = () => {
   }
 
   const placeData = change.new_data || change.old_data || {};
-  const dateStr = new Date(change.detected_at).toLocaleDateString(undefined, {
+  const dateStr = new Date(change.event_date || change.detected_at).toLocaleDateString(undefined, {
     month: 'long',
     day: 'numeric',
     year: 'numeric'

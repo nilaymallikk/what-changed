@@ -157,25 +157,25 @@ export const AdminPage: React.FC = () => {
         
         {/* STATS METRIC CARDS */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="dark-glass p-5 rounded-2xl border border-slate-800/80 space-y-1">
+          <div className="mono-card p-5 rounded-2xl border border-slate-800/80 space-y-1">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Areas Tracked</span>
             <div className="text-3xl font-black text-white">{stats.areasCount || 1}</div>
             <span className="text-[11px] text-slate-500 block font-mono">public.areas</span>
           </div>
 
-          <div className="dark-glass p-5 rounded-2xl border border-slate-800/80 space-y-1">
+          <div className="mono-card p-5 rounded-2xl border border-slate-800/80 space-y-1">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Snapshots</span>
             <div className="text-3xl font-black text-indigo-400">{stats.snapshotsCount || 2}</div>
             <span className="text-[11px] text-slate-500 block font-mono">public.snapshots</span>
           </div>
 
-          <div className="dark-glass p-5 rounded-2xl border border-slate-800/80 space-y-1">
+          <div className="mono-card p-5 rounded-2xl border border-slate-800/80 space-y-1">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Changes Detected</span>
             <div className="text-3xl font-black text-emerald-400">{stats.changesCount || 4}</div>
             <span className="text-[11px] text-slate-500 block font-mono">public.changes</span>
           </div>
 
-          <div className="dark-glass p-5 rounded-2xl border border-slate-800/80 space-y-1">
+          <div className="mono-card p-5 rounded-2xl border border-slate-800/80 space-y-1">
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Data Fetch Runs</span>
             <div className="text-3xl font-black text-amber-400">{runs.length || 1}</div>
             <span className="text-[11px] text-slate-500 block font-mono">data_fetch_runs</span>
@@ -183,7 +183,7 @@ export const AdminPage: React.FC = () => {
         </div>
 
         {/* MANUAL PIPELINE CONTROLS */}
-        <div className="dark-glass rounded-3xl p-6 border border-slate-800/80 shadow-2xl space-y-4">
+        <div className="mono-card rounded-3xl p-6 border border-slate-800/80 shadow-2xl space-y-4">
           <h2 className="text-sm font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
             <Activity className="w-4 h-4 text-indigo-400" />
             <span>Manual Pipeline Actions</span>
@@ -232,7 +232,7 @@ export const AdminPage: React.FC = () => {
         </div>
 
         {/* LOG TABLE */}
-        <div className="dark-glass rounded-3xl p-6 border border-slate-800/80 shadow-2xl space-y-4">
+        <div className="mono-card rounded-3xl p-6 border border-slate-800/80 shadow-2xl space-y-4">
           <h2 className="text-sm font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
             <FileText className="w-4 h-4 text-indigo-400" />
             <span>Data Collection Runs Log</span>

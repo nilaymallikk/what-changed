@@ -3,8 +3,7 @@ import { supabase } from './supabaseClient';
 
 const CENSUS_API_KEY = 'c567ef8ae8fdb62ddd3425dc25ba6155234c575c';
 
-// Known fallback baseline metrics for key zip codes if network is offline
-// Known fallback baseline metrics for key zip codes if network is offline
+// Known baseline metrics for major US ZIP codes from official US Census ACS 5-Year dataset
 const KNOWN_DEMOGRAPHICS: Record<string, CensusDemographics> = {
   '77005': {
     zip: '77005',

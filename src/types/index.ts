@@ -5,8 +5,14 @@ export interface NormalizedPlace {
   address: string;
   latitude: number;
   longitude: number;
+  timestamp?: string;
+  version?: number;
+  user?: string;
+  status?: 'active' | 'disused' | 'closed';
   metadata: Record<string, any>;
 }
+
+export type DateFilter = 'all' | '30d' | '6m' | '1y' | '5y' | '10y';
 
 export interface Area {
 

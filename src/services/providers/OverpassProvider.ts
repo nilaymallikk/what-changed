@@ -9,8 +9,8 @@ export class OverpassProvider extends BaseDataProvider {
 
   private endpoint = 'https://overpass-api.de/api/interpreter';
 
-  async fetchNearbyData(lat: number, lon: number, radiusMeters: number = 1500): Promise<FetchResult> {
-    // High-precision Overpass QL query focusing strictly on commercial POIs & civic establishments
+  async fetchNearbyData(lat: number, lon: number, radiusMeters: number = 1800): Promise<FetchResult> {
+    // High-precision Overpass QL query capturing POIs, active & disused establishments with full metadata (timestamp, version, user)
     const query = `
 [out:json][timeout:25];
 (
@@ -28,8 +28,20 @@ export class OverpassProvider extends BaseDataProvider {
   
   node["office"]["name"](around:${radiusMeters},${lat},${lon});
   way["office"]["name"](around:${radiusMeters},${lat},${lon});
+
+  node["disused:amenity"]["name"](around:${radiusMeters},${lat},${lon});
+  way["disused:amenity"]["name"](around:${radiusMeters},${lat},${lon});
+
+  node["disused:shop"]["name"](around:${radiusMeters},${lat},${lon});
+  way["disused:shop"]["name"](around:${radiusMeters},${lat},${lon});
+
+  node["closed"="yes"]["name"](around:${radiusMeters},${lat},${lon});
+  way["closed"="yes"]["name"](around:${radiusMeters},${lat},${lon});
+
+  node["abandoned:amenity"]["name"](around:${radiusMeters},${lat},${lon});
+  way["abandoned:amenity"]["name"](around:${radiusMeters},${lat},${lon});
 );
-out center body;
+out center meta;
 `;
 
     try {
@@ -50,7 +62,7 @@ out center body;
 
       // Strict filter: Require valid name and valid category
       const normalizedPlaces: NormalizedPlace[] = elements
-        .filter((el: any) => el.tags && (el.tags.name || el.tags['brand'] || el.tags['official_name']))
+        .filter((el: any) => el.tags && (el.tags.name || el.tags['brand'] || el.tags['official_name'] || el.tags['old_name']))
         .map((el: any) => this.normalizeOSMElement(el));
 
       return {
@@ -69,22 +81,38 @@ out center body;
   private normalizeOSMElement(el: any): NormalizedPlace {
     const tags = el.tags || {};
     const external_id = `${el.type}/${el.id}`;
-    const name = tags.name || tags['brand'] || tags['official_name'] || 'Unnamed Place';
+    const name = tags.name || tags['brand'] || tags['official_name'] || tags['old_name'] || 'Unnamed Place';
 
     const latitude = el.lat || (el.center ? el.center.lat : 0);
     const longitude = el.lon || (el.center ? el.center.lon : 0);
 
+    const isDisused = Boolean(
+      tags['disused:amenity'] ||
+      tags['disused:shop'] ||
+      tags.closed === 'yes' ||
+      tags['abandoned:amenity'] ||
+      tags.disused === 'yes' ||
+      tags.end_date
+    );
+
     let category = 'Business & Services';
-    if (tags.amenity) {
-      category = this.mapCategory(tags.amenity);
-    } else if (tags.shop) {
-      category = tags.shop === 'supermarket' ? 'Supermarket' : `Retail (${tags.shop.replace('_', ' ')})`;
+    const rawAmenity = tags.amenity || tags['disused:amenity'] || tags['abandoned:amenity'];
+    const rawShop = tags.shop || tags['disused:shop'];
+
+    if (rawAmenity) {
+      category = this.mapCategory(rawAmenity);
+    } else if (rawShop) {
+      category = rawShop === 'supermarket' ? 'Supermarket' : `Retail (${rawShop.replace('_', ' ')})`;
     } else if (tags.leisure) {
       category = tags.leisure === 'fitness_centre' ? 'Gym & Fitness' : 'Recreation';
     } else if (tags.tourism) {
       category = 'Hotel & Tourism';
     } else if (tags.office) {
       category = 'Office';
+    }
+
+    if (isDisused) {
+      category += ' (Closed / Disused)';
     }
 
     // Precise address extraction from OSM tags
@@ -103,13 +131,15 @@ out center body;
     } else if (tags['addr:full']) {
       formattedAddr = tags['addr:full'];
     } else {
-      // Fallback cross-street / location reference
       formattedAddr = city && state ? `Located in ${city}, ${state}` : 'Street address pending map survey';
     }
 
     if (city && state && !formattedAddr.includes(city)) {
       formattedAddr += `, ${city}, ${state} ${zip}`.trim();
     }
+
+    const osmTimestamp = el.timestamp || tags['survey:date'] || tags['check_date'] || new Date().toISOString();
+    const osmVersion = typeof el.version === 'number' ? el.version : 1;
 
     return {
       external_id,
@@ -118,9 +148,20 @@ out center body;
       address: formattedAddr,
       latitude,
       longitude,
+      timestamp: osmTimestamp,
+      version: osmVersion,
+      user: el.user,
+      status: isDisused ? 'closed' : 'active',
       metadata: {
         osm_type: el.type,
         osm_id: el.id,
+        osm_version: osmVersion,
+        osm_timestamp: osmTimestamp,
+        osm_user: el.user,
+        osm_changeset: el.changeset,
+        start_date: tags.start_date || tags.opening_date,
+        end_date: tags.end_date,
+        old_name: tags.old_name || tags['disused:name'] || tags['was:name'],
         cuisine: tags.cuisine,
         opening_hours: tags.opening_hours,
         phone: tags.phone || tags['contact:phone'],

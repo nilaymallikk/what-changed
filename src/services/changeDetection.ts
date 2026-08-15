@@ -1,6 +1,5 @@
 import type { Change, ChangeType, NormalizedPlace } from '../types';
 
-
 export function normalizeText(str: string): string {
   if (!str) return '';
   return str.toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -31,12 +30,12 @@ export function calculateSignificanceScore(place: NormalizedPlace, changeType: C
     baseScore = 85;
   } else if (cat.includes('restaurant') || cat.includes('cafe') || cat.includes('gym') || cat.includes('hotel')) {
     baseScore = 70;
-  } else if (cat.includes('bank') || cat.includes('pharmacy') || cat.includes('entertainment')) {
+  } else if (cat.includes('bank') || cat.includes('pharmacy') || cat.includes('cinema') || cat.includes('theatre')) {
     baseScore = 65;
-  } else if (cat.includes('shop')) {
-    baseScore = 45;
+  } else if (cat.includes('shop') || cat.includes('retail')) {
+    baseScore = 50;
   } else {
-    baseScore = 35;
+    baseScore = 40;
   }
 
   if (changeType === 'business_opened') {
@@ -44,9 +43,77 @@ export function calculateSignificanceScore(place: NormalizedPlace, changeType: C
   } else if (changeType === 'business_removed') {
     return Math.min(100, baseScore + 5);
   } else {
-    // Modified metadata is typically lower significance
-    return Math.max(10, Math.round(baseScore * 0.4));
+    return Math.max(20, Math.round(baseScore * 0.5));
   }
+}
+
+/**
+ * Classify changes from a single snapshot based on real OSM metadata (timestamp, version, status, tags)
+ */
+export function classifyInitialPlaces(
+  areaId: string,
+  sourceId: string,
+  places: NormalizedPlace[]
+): Change[] {
+  const changes: Change[] = [];
+
+  places.forEach((place) => {
+    const rawTimestamp = place.timestamp || place.metadata?.osm_timestamp || new Date().toISOString();
+    const version = place.version || place.metadata?.osm_version || 1;
+    const isClosed = place.status === 'closed' || Boolean(place.metadata?.end_date);
+    const oldName = place.metadata?.old_name;
+
+    let changeType: ChangeType = 'business_opened';
+    let title = `New place: ${place.name}`;
+    let description = `${place.name} (${place.category}) was mapped at ${place.address || 'nearby location'}.`;
+    let oldData: Record<string, any> | null = null;
+    let newData: Record<string, any> | null = { ...place };
+    let confidence = 0.95;
+
+    if (isClosed) {
+      changeType = 'business_removed';
+      title = `Closed / Unlisted: ${place.name}`;
+      description = `${place.name} (${place.category}) is recorded as disused or closed in OpenStreetMap records.`;
+      oldData = { ...place };
+      newData = null;
+      confidence = 0.92;
+    } else if (version > 1) {
+      changeType = 'business_modified';
+      title = `Place modified: ${place.name}`;
+      if (oldName && normalizeText(oldName) !== normalizeText(place.name)) {
+        description = `Name updated from "${oldName}" to "${place.name}".`;
+        oldData = { ...place, name: oldName };
+      } else {
+        description = `Place details and attributes updated in OpenStreetMap (revision v${version}).`;
+        oldData = { ...place, version: version - 1 };
+      }
+      confidence = 0.93;
+    }
+
+    const sigScore = calculateSignificanceScore(place, changeType);
+
+    changes.push({
+      id: `change_init_${place.external_id.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now().toString(36)}`,
+      area_id: areaId,
+      change_type: changeType,
+      entity_type: 'place',
+      entity_id: place.external_id,
+      title,
+      description,
+      old_data: oldData,
+      new_data: newData,
+      source_id: sourceId,
+      detected_at: rawTimestamp,
+      event_date: rawTimestamp,
+      confidence,
+      significance_score: sigScore,
+      verification_status: 'detected',
+      created_at: new Date().toISOString()
+    });
+  });
+
+  // Sort changes by event_date descending (newest first)
+  return changes.sort((a, b) => new Date(b.event_date).getTime() - new Date(a.event_date).getTime());
 }
 
 /**
@@ -58,6 +125,11 @@ export function detectPlaceChanges(
   previousPlaces: NormalizedPlace[],
   currentPlaces: NormalizedPlace[]
 ): Change[] {
+  // If there are no previous places to diff against, classify the current places using their real OSM metadata
+  if (previousPlaces.length === 0) {
+    return classifyInitialPlaces(areaId, sourceId, currentPlaces);
+  }
+
   const changes: Change[] = [];
   const now = new Date().toISOString();
 
@@ -67,7 +139,6 @@ export function detectPlaceChanges(
     if (p.external_id) prevByExternalId.set(p.external_id, p);
   });
 
-  // Track matched previous place external IDs
   const matchedPrevIds = new Set<string>();
 
   // 1. Iterate through current places to find NEW and MODIFIED places
@@ -84,46 +155,96 @@ export function detectPlaceChanges(
         if (matchedPrevIds.has(prev.external_id)) return false;
         const prevNormName = normalizeText(prev.name);
         const dist = calculateDistanceMeters(currPlace.latitude, currPlace.longitude, prev.latitude, prev.longitude);
-        return (currNormName === prevNormName || currNormName.includes(prevNormName)) && dist < 100;
+        return (currNormName === prevNormName || (currNormName && prevNormName && currNormName.includes(prevNormName))) && dist < 100;
       });
     }
 
+    const eventDate = currPlace.timestamp || now;
+
     if (!matchedPrev) {
-      // NEW PLACE (business_opened)
-      const sigScore = calculateSignificanceScore(currPlace, 'business_opened');
-      changes.push({
-        id: `change_new_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-        area_id: areaId,
-        change_type: 'business_opened',
-        entity_type: 'place',
-        entity_id: currPlace.external_id,
-        title: `New place appeared: ${currPlace.name}`,
-        description: `${currPlace.name} (${currPlace.category}) was added at ${currPlace.address || 'nearby location'}.`,
-        old_data: null,
-        new_data: { ...currPlace },
-        source_id: sourceId,
-        detected_at: now,
-        event_date: now,
-        confidence: 0.95,
-        significance_score: sigScore,
-        verification_status: 'detected',
-        created_at: now
-      });
+      // Check if place is closed/disused
+      if (currPlace.status === 'closed') {
+        const sigScore = calculateSignificanceScore(currPlace, 'business_removed');
+        changes.push({
+          id: `change_rem_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+          area_id: areaId,
+          change_type: 'business_removed',
+          entity_type: 'place',
+          entity_id: currPlace.external_id,
+          title: `Closed / Unlisted: ${currPlace.name}`,
+          description: `${currPlace.name} (${currPlace.category}) was recorded as closed/disused in the latest map snapshot.`,
+          old_data: { ...currPlace },
+          new_data: null,
+          source_id: sourceId,
+          detected_at: eventDate,
+          event_date: eventDate,
+          confidence: 0.92,
+          significance_score: sigScore,
+          verification_status: 'detected',
+          created_at: now
+        });
+      } else {
+        // NEW PLACE (business_opened)
+        const sigScore = calculateSignificanceScore(currPlace, 'business_opened');
+        changes.push({
+          id: `change_new_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+          area_id: areaId,
+          change_type: 'business_opened',
+          entity_type: 'place',
+          entity_id: currPlace.external_id,
+          title: `New place appeared: ${currPlace.name}`,
+          description: `${currPlace.name} (${currPlace.category}) was added at ${currPlace.address || 'nearby location'}.`,
+          old_data: null,
+          new_data: { ...currPlace },
+          source_id: sourceId,
+          detected_at: eventDate,
+          event_date: eventDate,
+          confidence: 0.95,
+          significance_score: sigScore,
+          verification_status: 'detected',
+          created_at: now
+        });
+      }
     } else {
-      // Record match
       matchedPrevIds.add(matchedPrev.external_id);
 
-      // Check if MODIFIED (name, address, or category changed)
+      // Check if status changed to closed
+      if (currPlace.status === 'closed' && matchedPrev.status !== 'closed') {
+        const sigScore = calculateSignificanceScore(currPlace, 'business_removed');
+        changes.push({
+          id: `change_rem_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+          area_id: areaId,
+          change_type: 'business_removed',
+          entity_type: 'place',
+          entity_id: currPlace.external_id,
+          title: `Closed / Unlisted: ${currPlace.name}`,
+          description: `${currPlace.name} (${currPlace.category}) changed status to closed/disused in OpenStreetMap.`,
+          old_data: { ...matchedPrev },
+          new_data: null,
+          source_id: sourceId,
+          detected_at: eventDate,
+          event_date: eventDate,
+          confidence: 0.94,
+          significance_score: sigScore,
+          verification_status: 'detected',
+          created_at: now
+        });
+        return;
+      }
+
+      // Check if MODIFIED (name, address, category, or version changed)
       const nameChanged = normalizeText(matchedPrev.name) !== normalizeText(currPlace.name);
       const addrChanged = normalizeText(matchedPrev.address) !== normalizeText(currPlace.address);
       const catChanged = matchedPrev.category !== currPlace.category;
+      const versionChanged = currPlace.version && matchedPrev.version && currPlace.version > matchedPrev.version;
 
-      if (nameChanged || addrChanged || catChanged) {
+      if (nameChanged || addrChanged || catChanged || versionChanged) {
         const sigScore = calculateSignificanceScore(currPlace, 'business_modified');
         let modDesc = `Updated details for ${currPlace.name}.`;
         if (nameChanged) modDesc = `Name changed from "${matchedPrev.name}" to "${currPlace.name}".`;
         else if (addrChanged) modDesc = `Address updated to ${currPlace.address}.`;
         else if (catChanged) modDesc = `Category reclassified from ${matchedPrev.category} to ${currPlace.category}.`;
+        else if (versionChanged) modDesc = `Place details updated in OpenStreetMap (revision v${currPlace.version}).`;
 
         changes.push({
           id: `change_mod_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
@@ -136,8 +257,8 @@ export function detectPlaceChanges(
           old_data: { ...matchedPrev },
           new_data: { ...currPlace },
           source_id: sourceId,
-          detected_at: now,
-          event_date: now,
+          detected_at: eventDate,
+          event_date: eventDate,
           confidence: 0.92,
           significance_score: sigScore,
           verification_status: 'detected',
@@ -150,8 +271,6 @@ export function detectPlaceChanges(
   // 2. Iterate through previous places to find REMOVED places
   previousPlaces.forEach((prevPlace) => {
     if (!matchedPrevIds.has(prevPlace.external_id)) {
-      // REMOVED PLACE (business_removed)
-      // IMPORTANT: Explicitly state "no longer listed in the latest OpenStreetMap snapshot"
       const sigScore = calculateSignificanceScore(prevPlace, 'business_removed');
       changes.push({
         id: `change_rem_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
@@ -174,5 +293,7 @@ export function detectPlaceChanges(
     }
   });
 
-  return changes;
+  // Sort changes by event_date descending (newest first)
+  return changes.sort((a, b) => new Date(b.event_date).getTime() - new Date(a.event_date).getTime());
 }
+
