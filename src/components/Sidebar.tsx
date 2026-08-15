@@ -1,5 +1,8 @@
+'use client';
+
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, Users, Clock, Search, Home 
 } from 'lucide-react';
@@ -15,8 +18,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeSection = 'overview',
   onSectionClick 
 }) => {
-  const location = useLocation();
-  const isDetailPage = location.pathname.includes('/change/');
+  const pathname = usePathname();
+  const isDetailPage = pathname?.includes('/change/');
 
   const handleNav = (section: 'overview' | 'demographics' | 'timeline') => {
     if (onSectionClick) {
@@ -30,7 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Top Header & Brand */}
       <div>
         <div className="p-6 border-b border-zinc-800/80">
-          <Link to="/" className="block group">
+          <Link href="/" className="block group">
             <h2 className="text-lg font-black tracking-tight text-white uppercase group-hover:text-zinc-200 transition-colors font-sans">
               Intelligence
             </h2>
@@ -43,7 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Navigation Menu */}
         <nav className="p-4 space-y-1.5 font-mono">
           <Link
-            to={`/area/${currentZip}`}
+            href={`/area/${currentZip}`}
             onClick={() => handleNav('overview')}
             className={`btn-interactive flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-bold transition-all ${
               activeSection === 'overview' && !isDetailPage
@@ -84,14 +87,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Bottom Footer Actions */}
       <div className="p-4 border-t border-zinc-800/80 space-y-2">
         <Link
-          to="/"
+          href="/"
           className="btn-interactive flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors"
         >
           <Search className="w-4 h-4 text-zinc-500" />
           <span>Search New ZIP</span>
         </Link>
         <Link
-          to="/"
+          href="/"
           className="btn-interactive flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-zinc-400 hover:text-white hover:bg-zinc-900 transition-colors"
         >
           <Home className="w-4 h-4 text-zinc-500" />

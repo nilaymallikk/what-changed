@@ -183,15 +183,16 @@ Every detected change is scored based on civic, commercial, and community weight
 
 | Layer | Technologies |
 |---|---|
-| **Frontend Framework** | React 19, TypeScript, Vite |
-| **Routing** | React Router DOM v7 |
-| **Styling & Animations** | Vanilla Tailwind CSS v4 with custom monochrome design tokens, radar sweeps, shimmers, and tactile `btn-interactive` click states |
+| **Fullstack Framework** | Next.js 15 (App Router), React 19, TypeScript |
+| **Rendering Strategy** | Dynamic SSR + Server Components + Static Generation (SSG) + Client Interactivity |
+| **SEO & Crawling** | Dynamic `generateMetadata`, OpenGraph cards, Twitter cards, dynamic `sitemap.ts`, `robots.ts` |
+| **Styling & Animations** | Tailwind CSS v4, PostCSS, monochrome design tokens, radar sweeps, shimmers, and tactile `btn-interactive` click states |
 | **Mapping Engine** | MapLibre GL JS with Carto Dark matter vector basemaps |
 | **Icons & Visuals** | Lucide React |
 | **Data Sources (100% Free)** | Spatial Overpass Engine, Wikipedia Geosearch, US Census Bureau ACS |
 | **AI Summarization** | OpenRouter (NVIDIA Nemotron / DeepSeek / Gemini models) |
 | **Database & Cache** | Supabase PostgreSQL + LocalStateStore (`LocalStorage v2`) |
-| **Linting & Code Quality** | Oxlint, TypeScript compiler (`tsc -b`) |
+| **Linting & Code Quality** | Oxlint, Next.js type checking |
 
 ---
 

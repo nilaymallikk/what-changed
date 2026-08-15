@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import type { Area, Snapshot, Change, AISummary, DataFetchRun, Place } from '../types';
 
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://sb-whatchanged.supabase.co';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_RGX4-5Cs1oBgHjKf69T9_Q_FJMh7zl0';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://sb-whatchanged.supabase.co';
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_RGX4-5Cs1oBgHjKf69T9_Q_FJMh7zl0';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -19,6 +19,9 @@ class LocalStateStore {
     ai_summaries: AISummary[];
     fetch_runs: DataFetchRun[];
   } {
+    if (typeof window === 'undefined') {
+      return { areas: [], snapshots: [], places: [], changes: [], ai_summaries: [], fetch_runs: [] };
+    }
     try {
       const data = localStorage.getItem(this.STORAGE_KEY);
       if (data) {
@@ -41,6 +44,7 @@ class LocalStateStore {
   }
 
   private saveStore(store: any) {
+    if (typeof window === 'undefined') return;
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(store));
     } catch (e) {
