@@ -1,37 +1,29 @@
 # ⚡ What Changed Around Me?
 
-> **A high-contrast, real-time neighborhood intelligence dashboard that automatically tracks localized commercial, structural, and place changes alongside official US Census Bureau demographic metrics across historical time horizons.**
+> **Hyperlocal Spatial Intelligence & 10-Year US Census Shift Tracker for Any American Neighborhood.**
+
+[![Next.js 15](https://img.shields.io/badge/Next.js-15_App_Router-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![React 19](https://img.shields.io/badge/React-19-black?style=flat-square&logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-black?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![MapLibre GL](https://img.shields.io/badge/MapLibre_GL-3.6-black?style=flat-square&logo=maplibre)](https://maplibre.org/)
+[![Author](https://img.shields.io/badge/Built_by-Nilay_Mallik-black?style=flat-square&logo=x)](https://x.com/nilaymallikX)
 
 ---
 
-## 🌟 Overview
+## 🏛️ System Architecture
 
-**What Changed Around Me?** is an interactive web platform designed to provide instant visibility into neighborhood evolution. By combining open geographic snapshot data from **OpenStreetMap (Overpass API)** with server-side demographic integration from the **US Census Bureau (ACS 5-Year Dataset)**, the application delivers actionable intelligence on neighborhood growth, commercial turnover, and demographic trends.
-
-All data is presented through a **pure high-contrast monochrome design system** built for maximum clarity, focus, and modern aesthetic elegance.
+![System Architecture](architecture.png)
 
 ---
 
-## ✨ Key Features
+## 🌟 Core Features
 
-- 📍 **Automated Location & Boundary Resolution**: Enter any US ZIP code (e.g., `77005`, `10001`, `90210`, `33139`) for automatic geocoding and map positioning.
-- 🏛️ **US Census Bureau ZCTA Demographics**: Secure server-side demographic statistics fetching for Zip Code Tabulation Areas (ZCTA):
-  - **Population & Households**
-  - **Median Household Income**
-  - **Total Housing Units & Occupancy Rate**
-  - **Median Age & Median Home Value**
-  - **Average Household Density**
-- 📈 **Historical Baseline Comparisons (`30D`, `6M`, `1Y`, `5Y`, `10Y`)**:
-  - Differentiate current statistics against 1-Year, 5-Year, and 10-Year historical baselines.
-  - Automatic percentage change indicators (`▲ +19.8% vs 5Y ago`, `▲ +56.3% vs 10Y ago`).
-- 🤖 **Executive AI Summaries**: LLM-generated neighborhood change summaries highlighting key events, new business openings, unlisted businesses, and significance points.
-- 🗺️ **Interactive Spatial Map & Timeline**:
-  - Built with **MapLibre GL** using vector dark mode tiles.
-  - Marker indicators for **New Places (+)**, **Unlisted Places (-)**, and **Modified Places (Δ)**.
-  - Integrated search, category filtering, and chronological audit log timeline.
-- 🛡️ **Secure Server-Side Edge Functions**:
-  - Powered by **Supabase Edge Functions** (Deno environment) to protect API keys server-side.
-  - Automatic client-side caching with local storage for instant page reloads.
+- **📍 Instant ZIP Code Intelligence**: Resolve any 5-digit US ZIP code to extract live commercial changes, physical renovations, and unlisted places.
+- **📊 Official US Census Bureau Demographics**: Real-time ZCTA metrics covering Median Household Income, Population Growth, Housing Occupancy, Median Home Values, and 10-Year historical baselines.
+- **⚡ Neighborhood Vitality Index (0–100)**: Multi-factor vitality algorithm scoring income trajectories (35%), commercial opening velocity (30%), housing occupancy (20%), and civic density (15%).
+- **⚖️ Side-by-Side Area Comparison (`/compare`)**: Direct head-to-head benchmarking between any two US neighborhoods with metric scorecards and dynamic SEO cards.
+- **⏳ Map Time Machine**: Scrub historical eras (`2024–Present`, `2021–2023`, `2018–2020`, `All History`) with animated vector map pins.
+- **📢 1-Click Shareable Infographics**: Generate high-resolution 1200x630 dark-theme social PNGs or post directly to X with pre-formatted stats.
 
 ---
 
@@ -39,160 +31,58 @@ All data is presented through a **pure high-contrast monochrome design system** 
 
 | Layer | Technology |
 | :--- | :--- |
-| **Frontend Framework** | React 19 + TypeScript + Vite 8 |
-| **Styling & UI** | Tailwind CSS v4 + Vanilla CSS Design System + Lucide Icons |
-| **Mapping Engine** | MapLibre GL |
-| **Backend & Database** | Supabase (PostgreSQL + Row Level Security) |
-| **Serverless Functions** | Supabase Edge Functions (Deno) |
-| **External APIs** | US Census Bureau ACS 5-Year API, OpenStreetMap (Overpass & Nominatim) |
-| **Linting & Tooling** | Oxlint, TypeScript compiler (`tsc`) |
+| **Framework** | Next.js 15 (App Router with Server Components & Dynamic SEO) |
+| **Frontend** | React 19, TypeScript, Tailwind CSS v4, Lucide Icons |
+| **Map Visualization** | MapLibre GL + Carto Dark Vector Tiles |
+| **Data Sources** | US Census Bureau ACS 5-Year API, Overpass Spatial API, Wikipedia Geosearch |
+| **Database & Auth** | Supabase (PostgreSQL with RLS) + Local Offline Fallbacks |
 
 ---
 
-## 📁 Project Architecture
+## 🚀 Quick Start
 
-```
-what-changed/
-├── src/
-│   ├── components/
-│   │   ├── CensusDemographicsCard.tsx # High-contrast ZCTA Census statistics component
-│   │   ├── MapComponent.tsx            # MapLibre GL interactive map visualizer
-│   │   ├── Navbar.tsx                  # Application top navigation bar
-│   │   └── PipelineAdmin.tsx           # Background data pipeline monitor
-│   ├── pages/
-│   │   └── AreaDashboard.tsx           # Main neighborhood tracking dashboard
-│   ├── services/
-│   │   ├── aiSummary.ts                # AI summary generation & processing
-│   │   ├── censusService.ts            # Census edge function client & fallback caching
-│   │   ├── changeDetection.ts          # Spatial diffing & node matching logic
-│   │   ├── demoData.ts                 # Realistic baseline demo datasets (77005, 10001, etc.)
-│   │   ├── geocoding.ts                # Nominatim ZIP resolution service
-│   │   └── supabaseClient.ts           # Supabase client & local storage fallback DB
-│   ├── types/
-│   │   └── index.ts                    # TypeScript interfaces & demographic models
-│   ├── index.css                       # Monochrome design system CSS variables
-│   └── main.tsx                        # React application entry point
-├── supabase/
-│   ├── functions/
-│   │   └── census-demographics/        # Server-side Supabase Edge Function (Deno)
-│   │       ├── index.ts                # Census API query handler
-│   │       └── .env                    # Secret configuration (CENSUS_API_KEY)
-│   └── schema.sql                      # PostgreSQL database schema & RLS policies
-├── .env.example                        # Environment variables template
-├── package.json                        # NPM package dependencies
-└── vite.config.ts                      # Vite build configuration
+### 1. Clone & Install
+```bash
+git clone https://github.com/nilaymallikk/what-changed.git
+cd what-changed
+npm install
 ```
 
----
+### 2. Configure Environment
+Create a `.env` file in the root directory:
+```env
+CENSUS_API_KEY=your_census_api_key_here
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-## ⚙️ Getting Started
-
-### Prerequisites
-
-- **Node.js**: `v18.0.0` or higher
-- **npm** or **yarn** / **pnpm**
-- **US Census Bureau API Key**: Free key from [api.census.gov/data/key_signup.html](https://api.census.gov/data/key_signup.html)
-
----
-
-### Installation
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/nilaymallikk/what-changed.git
-   cd what-changed
-   ```
-
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-
-3. **Configure Environment Variables**:
-   Copy `.env.example` to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-   Fill in your configuration:
-   ```env
-   CENSUS_API_KEY=your_census_api_key_here
-   VITE_SUPABASE_URL=https://your-supabase-project.supabase.co
-   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
-
-4. **Start the local development server**:
-   ```bash
-   npm run dev
-   ```
-   Open `http://localhost:5173/` in your browser.
+### 3. Run Locally
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## ⚡ Supabase Edge Function Deployment
+## 📦 Production Build & Quality Check
 
-To deploy the `census-demographics` edge function to your Supabase project:
+```bash
+# Lint codebase
+npm run lint
 
-1. **Install Supabase CLI & Log in**:
-   ```bash
-   npx supabase login
-   ```
+# Build production bundle
+npm run build
 
-2. **Link your project**:
-   ```bash
-   npx supabase link --project-ref your-project-ref
-   ```
-
-3. **Set Server-Side Secrets**:
-   ```bash
-   npx supabase secrets set CENSUS_API_KEY=your_census_api_key_here
-   ```
-
-4. **Deploy the Edge Function**:
-   ```bash
-   npx supabase functions deploy census-demographics
-   ```
+# Start production server
+npm run start
+```
 
 ---
 
-## 🗄️ Database Schema (`schema.sql`)
+## 👤 Author
 
-The application includes PostgreSQL tables configured with **Row Level Security (RLS)**:
-
-- `areas`: Managed geographic regions tracked by ZIP code and lat/long centroid.
-- `census_demographics`: Cached ZCTA statistics from US Census ACS 5-Year API.
-- `places`: Unique physical entities with coordinates and tags.
-- `snapshots`: Historical point-in-time OpenStreetMap entity snapshots.
-- `snapshot_places`: Junction table for snapshot node attributes.
-- `changes`: Calculated spatial diffs (`business_opened`, `business_removed`, `business_modified`).
-- `ai_summaries`: Generated executive summaries with significance scoring.
-- `data_fetch_runs`: Audit trail for Overpass and Census API pipeline executions.
-
----
-
-## 🧪 Verification & Demo Testing
-
-Test pre-configured ZIP code dashboards with demographic data and change events:
-
-| ZIP Code | Location | Description |
-| :--- | :--- | :--- |
-| `77005` | Houston, TX (Rice Village) | Full demo dataset with commercial openings & high-income ZCTA stats |
-| `10001` | New York, NY (Chelsea/Midtown) | High-density urban commercial center |
-| `90210` | Beverly Hills, CA | Luxury retail & residential baseline |
-| `33139` | Miami Beach, FL | Dynamic hospitality & tourism node |
-
-Direct Navigation URL format: `http://localhost:5173/area/<zip_code>`
-
----
-
-## 📜 Scripts Reference
-
-- `npm run dev`: Launch Vite hot-reloading dev server
-- `npm run build`: Compile TypeScript (`tsc -b`) and build production bundle
-- `npm run lint`: Execute Oxlint linter
-- `npm run preview`: Preview production build locally
-
----
+Built with precision by **[Nilay Mallik](https://x.com/nilaymallikX)**.
 
 ## 📄 License
 
-This project is open-source and available under the [MIT License](LICENSE).
+Open-source under the [MIT License](LICENSE).
