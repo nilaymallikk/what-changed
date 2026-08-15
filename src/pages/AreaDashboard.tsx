@@ -10,7 +10,7 @@ import { defaultGeocodingProvider } from '../services/geocoding';
 import { overpassProvider } from '../services/providers/OverpassProvider';
 import { detectPlaceChanges } from '../services/changeDetection';
 import { generateAISummary } from '../services/aiSummary';
-import { getDemoData, getAreaFallbackData } from '../services/demoData';
+import { getAreaFallbackData } from '../services/demoData';
 import { localDB } from '../services/supabaseClient';
 import { censusService } from '../services/censusService';
 import { MapComponent } from '../components/MapComponent';
@@ -66,19 +66,11 @@ export const AreaDashboard: React.FC = () => {
       const storedChanges = localDB.getChanges(areaId);
       const storedSummary = localDB.getAISummary(areaId);
 
-      if (!forceRefresh && storedChanges.length >= 4 && storedSummary) {
+      const hasRealStoredData = storedChanges.length >= 4 && !storedChanges.some(c => c.id.startsWith('demo_') || c.id.startsWith('gen_'));
+
+      if (!forceRefresh && hasRealStoredData && storedSummary) {
         setChanges(storedChanges);
         setAISummary(storedSummary);
-        setLoading(false);
-        return;
-      }
-
-      const demoDataset = getDemoData(geoLoc.zip);
-      if (!forceRefresh && demoDataset) {
-        setChanges(demoDataset.changes);
-        setAISummary(demoDataset.aiSummary);
-        localDB.saveChanges(demoDataset.changes);
-        localDB.saveAISummary(demoDataset.aiSummary);
         setLoading(false);
         return;
       }

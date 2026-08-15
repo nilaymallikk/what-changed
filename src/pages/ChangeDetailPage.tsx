@@ -7,7 +7,6 @@ import {
 import type { Change, GeoLocation } from '../types';
 
 import { localDB } from '../services/supabaseClient';
-import { getDemoData } from '../services/demoData';
 import { MapComponent } from '../components/MapComponent';
 
 export const ChangeDetailPage: React.FC = () => {
@@ -18,14 +17,7 @@ export const ChangeDetailPage: React.FC = () => {
   useEffect(() => {
     const areaId = `area_${zip}`;
     const storedChanges = localDB.getChanges(areaId);
-    let found: Change | undefined = storedChanges.find(c => c.id === id);
-
-    if (!found) {
-      const demo = getDemoData(zip);
-      if (demo) {
-        found = demo.changes.find(c => c.id === id);
-      }
-    }
+    const found: Change | undefined = storedChanges.find(c => c.id === id);
 
     if (found) {
       setChange(found);

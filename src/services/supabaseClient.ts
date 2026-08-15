@@ -7,9 +7,9 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publisha
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// In-Memory & LocalStorage Fallback Store for smooth operation
+// In-Memory & LocalStorage Store for fast local caching
 class LocalStateStore {
-  private STORAGE_KEY = 'whatchanged_local_db_v1';
+  private STORAGE_KEY = 'whatchanged_local_db_v2';
 
   private getStore(): {
     areas: Area[];
@@ -21,7 +21,19 @@ class LocalStateStore {
   } {
     try {
       const data = localStorage.getItem(this.STORAGE_KEY);
-      if (data) return JSON.parse(data);
+      if (data) {
+        const parsed = JSON.parse(data);
+        // Strict real-data filter: Purge any legacy mockup or demo entries
+        const cleanChanges = (parsed.changes || []).filter((c: any) => !c.id?.startsWith('demo_') && !c.is_demo);
+        return {
+          areas: parsed.areas || [],
+          snapshots: parsed.snapshots || [],
+          places: parsed.places || [],
+          changes: cleanChanges,
+          ai_summaries: parsed.ai_summaries || [],
+          fetch_runs: parsed.fetch_runs || []
+        };
+      }
     } catch (e) {
       console.warn("LocalStorage access failed:", e);
     }
