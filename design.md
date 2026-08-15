@@ -156,21 +156,26 @@ Every detected change is scored based on civic, commercial, and community weight
 - **Interactive FAQ Accordion**: Expandable Q&A cards with smooth slide animations.
 
 ### 5.2 Area Dashboard (`/area/:zip`)
-- **Header & Controls**: Shows geocoded city, state, active ZIP code, total places tracked count, and a tactile **"Rescan Live Map"** button.
-- **Executive AI Brief Card**: Highlights top 3 high-significance community changes and macro neighborhood narrative.
+- **Left Intelligence Sidebar**: Dedicated navigation sidebar with brand typography (*Intelligence / Neighborhood Analysis*), section switches (*Overview*, *Demographics*, *Timeline*), and quick search triggers.
+- **Top Header & Provenance**: Displays `ZIP {location.zip}` and Sub-Neighborhood pills, bold uppercase municipality title (`NEW YORK, NY`, `BEVERLY HILLS, CA`), and high-contrast **"RESCAN LIVE MAP"** radar action.
+- **Executive Narrative Card**: Monospace header with sparkles icon and high-contrast macro spatial trends analysis.
 - **Census Demographics Module**:
-  - Toggle between 1-Year, 5-Year, and 10-Year historical delta views.
-  - Interactive grid displaying Population, Median Income, Housing Occupancy, Median Age, and Median Home Value with color-coded trend pills.
-- **Multi-Dimensional Filters**:
-  - *Category Filter*: `ALL`, `+ NEW`, `− UNLISTED`, `Δ MODIFIED` with total dataset counts.
-  - *Timeframe Selector*: `ALL TIME`, `30D`, `6M`, `1Y`, `5Y`, `10Y`.
-- **Interactive Split View (Desktop)**:
-  - *Left Column (7 cols)*: Full vector MapLibre GL map with Carto Dark tiles and custom pins synchronized with a scrollable chronological timeline.
-  - *Right Column (5 cols)*: Live text search filter and rich change cards displaying photos, address badges, exact event dates, and detail drilldowns.
+  - `1Y`, `5Y`, and `10Y` historical horizon selector.
+  - 4 high-contrast metric cards: `TOTAL POPULATION`, `MEDIAN INCOME`, `HOUSING UNITS`, and `COMMERCIAL VACANCY` / `MEDIAN HOME VALUE` with real-time percentage delta indicators (`↗ 2.4%`, `↗ 8.1%`, `↗ 1.2%`).
+- **Lower Section (Split 7 / 5 Layout)**:
+  - *Left: `■ VECTOR_NODE_MAP`*: MapLibre Dark matter vector map with high level-of-detail (`LOD: HIGH`), zoom controls, and custom interactive target pins.
+  - *Right: `CHRONOLOGICAL_EVENT_FEED`*: Searchable chronological place event stream with quick type filters (`ALL`, `+ NEW`, `− UNLISTED`), place category tags, addresses, `SIG_SCORE {x}/10`, and `ANALYZE →` detail drilldowns.
 
-### 5.3 Change Detail View (`/area/:zip/change/:id`)
-- Deep drilldown page for individual changes.
-- Displays high-resolution photos, significance gauge, matching confidence percentage, pinpoint coordinates on a dedicated map, and raw side-by-side JSON snapshot diffs.
+### 5.3 Change Detail Inspection View (`/area/:zip/change/:id`)
+- **Breadcrumb Navigation**: `TIMELINE  ›  EVENTS  ›  NODE_{id}` for seamless context.
+- **Top Action Bar**: Interactive `Reject Change` outline button and `Verify Entity` solid confirmation state.
+- **Headline & Metric Block**: Prominent place title, address badge, and side-by-side metric panel displaying `SIGNIFICANCE SCORE ({score}/100)` and `MATCH CONFIDENCE ({confidencePct}%)`.
+- **Two-Column Deep Inspection Grid**:
+  - *Left Column*: High-resolution photo card with bottom metadata bar (`SOURCE: ... TIMESTAMP: ...`) + Pinpoint coordinate map with crosshair target diamond and coordinate label (`MAP NODE  LAT: ...  LNG: ...`).
+  - *Right Column*:
+    - **Tag Analysis Diff**: Monospace comparison table (`KEY`, `PREVIOUS VALUE` with strikethrough, `PROPOSED VALUE`) tracking attribute shifts across versions.
+    - **Payload JSON Inspector**: Syntax-highlighted JSON viewer with a 1-click `COPY` button.
+- **Standard System Footer**: Clean copyright and documentation links.
 
 ---
 

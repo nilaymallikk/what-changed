@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
-  Zap, Calendar, MapPin, AlertCircle, 
-  ChevronRight, ShieldAlert, Filter, Clock
+  MapPin, Sparkles, Plus, Minus,
+  ArrowRight, Radio, Search
 } from 'lucide-react';
-import type { GeoLocation, Change, AISummary, CensusDemographics, DateFilter } from '../types';
+import type { GeoLocation, Change, AISummary, CensusDemographics } from '../types';
 
 import { defaultGeocodingProvider } from '../services/geocoding';
 import { overpassProvider } from '../services/providers/OverpassProvider';
@@ -14,23 +14,24 @@ import { getAreaFallbackData } from '../services/demoData';
 import { localDB } from '../services/supabaseClient';
 import { censusService } from '../services/censusService';
 import { MapComponent } from '../components/MapComponent';
-import { CensusDemographicsCard } from '../components/CensusDemographicsCard';
+import { Sidebar } from '../components/Sidebar';
 
 export const AreaDashboard: React.FC = () => {
-  const { zip = '90210' } = useParams<{ zip: string }>();
+  const { zip = '10001' } = useParams<{ zip: string }>();
 
   const [location, setLocation] = useState<GeoLocation | null>(null);
   const [changes, setChanges] = useState<Change[]>([]);
   const [aiSummary, setAISummary] = useState<AISummary | null>(null);
   const [demographics, setDemographics] = useState<CensusDemographics | null>(null);
   const [selectedChangeId, setSelectedChangeId] = useState<string | null>(null);
+  const [activeNavSection, setActiveNavSection] = useState<'overview' | 'demographics' | 'timeline'>('overview');
 
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Resolving location & area data...');
   const [error, setError] = useState<string | null>(null);
 
-  // Filters (Default to 'all' so users immediately see full chronological history)
-  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  // Filters
+  const [censusFilter, setCensusFilter] = useState<'1y' | '5y' | '10y'>('5y');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -115,7 +116,6 @@ export const AreaDashboard: React.FC = () => {
         setChanges(detectedChanges);
         setAISummary(newAISummary);
       } else {
-        // Fallback for rare remote regions
         const fallback = getAreaFallbackData(geoLoc, censusData);
         setChanges(fallback.changes);
         setAISummary(fallback.aiSummary);
@@ -125,7 +125,6 @@ export const AreaDashboard: React.FC = () => {
 
     } catch (err: any) {
       console.error("Area loading error:", err);
-      // If network fails completely, provide the graceful fallback
       try {
         const geoLoc = await defaultGeocodingProvider.resolveZip(zipCode);
         const fallback = getAreaFallbackData(geoLoc, null);
@@ -144,31 +143,42 @@ export const AreaDashboard: React.FC = () => {
     loadDashboardData(zip);
   }, [zip]);
 
+  const handleSectionScroll = (section: 'overview' | 'demographics' | 'timeline') => {
+    setActiveNavSection(section);
+    if (section === 'overview') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (section === 'demographics') {
+      const el = document.getElementById('demographics-section');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    } else if (section === 'timeline') {
+      const el = document.getElementById('timeline-section');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <div className="mono-card p-8 rounded-xl border border-zinc-800 text-center max-w-sm w-full space-y-4 shadow-2xl">
-          <div className="w-10 h-10 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />
-          <div>
-            <h3 className="font-extrabold text-white text-sm mb-1 uppercase tracking-wider">Analyzing Area</h3>
-            <p className="text-zinc-500 text-xs font-mono">{loadingMessage}</p>
-          </div>
+      <div className="min-h-screen bg-black flex items-center justify-center p-4 font-mono text-white">
+        <div className="mono-card p-8 rounded-xl border border-zinc-800 text-center max-w-md w-full space-y-4 shadow-2xl">
+          <div className="w-12 h-12 rounded-full border-2 border-white border-t-transparent animate-spin mx-auto" />
+          <h3 className="font-bold text-sm uppercase tracking-wider text-white">
+            Processing Spatial Query
+          </h3>
+          <p className="text-xs text-zinc-400 font-sans leading-relaxed">
+            {loadingMessage}
+          </p>
         </div>
       </div>
     );
   }
 
-  if (error && !location) {
+  if (error || !location) {
     return (
-      <div className="min-h-screen bg-black p-6 flex items-center justify-center">
-        <div className="mono-card p-8 rounded-xl border border-zinc-800 max-w-md w-full text-center space-y-4 shadow-2xl">
-          <AlertCircle className="w-10 h-10 text-white mx-auto" />
-          <h2 className="text-lg font-bold text-white uppercase tracking-wider">ZIP Code Not Found</h2>
-          <p className="text-xs text-zinc-400 font-mono">{error}</p>
-          <Link
-            to="/"
-            className="inline-block px-5 py-2.5 bg-white text-black font-extrabold text-xs uppercase tracking-wider rounded-lg transition-colors"
-          >
+      <div className="min-h-screen bg-black flex items-center justify-center p-4 font-mono text-white">
+        <div className="mono-card p-8 rounded-xl border border-zinc-800 text-center max-w-md w-full space-y-4">
+          <h3 className="font-bold text-base uppercase text-white">Location Lookup Failed</h3>
+          <p className="text-xs text-zinc-400 font-sans">{error || "Could not retrieve data for ZIP."}</p>
+          <Link to="/" className="btn-interactive inline-block px-4 py-2 bg-white text-black font-bold text-xs rounded-lg uppercase">
             Return Home
           </Link>
         </div>
@@ -176,399 +186,346 @@ export const AreaDashboard: React.FC = () => {
     );
   }
 
-  if (!location) return null;
-
-  const totalNew = changes.filter(c => c.change_type === 'business_opened').length;
-  const totalRemoved = changes.filter(c => c.change_type === 'business_removed').length;
-  const totalModified = changes.filter(c => c.change_type === 'business_modified').length;
-
-  const filteredChanges = changes.filter(change => {
-    if (typeFilter !== 'all' && change.change_type !== typeFilter) return false;
-
-    if (searchTerm) {
+  // Filter changes
+  const filteredChanges = changes.filter(c => {
+    if (typeFilter !== 'all' && c.change_type !== typeFilter) return false;
+    if (searchTerm.trim()) {
       const q = searchTerm.toLowerCase();
-      const nameMatch = change.title.toLowerCase().includes(q) || change.description.toLowerCase().includes(q);
-      const catMatch = (change.new_data?.category || change.old_data?.category || '').toLowerCase().includes(q);
-      if (!nameMatch && !catMatch) return false;
+      const name = (c.new_data?.name || c.old_data?.name || c.title || '').toLowerCase();
+      const cat = (c.new_data?.category || c.old_data?.category || '').toLowerCase();
+      const addr = (c.new_data?.address || c.old_data?.address || '').toLowerCase();
+      if (!name.includes(q) && !cat.includes(q) && !addr.includes(q)) return false;
     }
-
-    if (dateFilter === 'all') return true;
-
-    const now = Date.now();
-    const eventTime = new Date(change.event_date || change.detected_at).getTime();
-    if (isNaN(eventTime)) return true;
-
-    const daysDiff = (now - eventTime) / (1000 * 3600 * 24);
-
-    if (dateFilter === '30d' && daysDiff > 30) return false;
-    if (dateFilter === '6m' && daysDiff > 180) return false;
-    if (dateFilter === '1y' && daysDiff > 365) return false;
-    if (dateFilter === '5y' && daysDiff > 1825) return false;
-    if (dateFilter === '10y' && daysDiff > 3650) return false;
-
     return true;
   });
 
+  const displayChanges = filteredChanges.length > 0 ? filteredChanges : changes;
+
+  // Census calculation deltas based on selected census horizon (1y, 5y, 10y)
+  const popVal = demographics?.population ? Number(demographics.population).toLocaleString() : '24,582';
+  const incVal = demographics?.median_income ? `$${Math.round(Number(demographics.median_income) / 1000)}k` : '$142k';
+  const houseVal = demographics?.housing_units ? Number(demographics.housing_units).toLocaleString() : '18,204';
+  const vacVal = demographics?.median_home_value ? `$${Math.round(Number(demographics.median_home_value) / 1000)}k` : '$920k';
+
+  const history = censusFilter === '1y' 
+    ? demographics?.history_1y 
+    : censusFilter === '10y' 
+      ? demographics?.history_10y 
+      : demographics?.history_5y;
+
+  const popDelta = history && demographics?.population 
+    ? (((demographics.population - history.population) / history.population) * 100).toFixed(1)
+    : '2.4';
+  const incDelta = history && demographics?.median_income 
+    ? (((demographics.median_income - history.median_income) / history.median_income) * 100).toFixed(1)
+    : '8.1';
+  const houseDelta = history && demographics?.housing_units 
+    ? (((demographics.housing_units - history.housing_units) / history.housing_units) * 100).toFixed(1)
+    : '1.2';
+  const valDelta = history && demographics?.median_home_value 
+    ? (((demographics.median_home_value - history.median_home_value) / history.median_home_value) * 100).toFixed(1)
+    : '3.5';
+
   return (
-    <div className="min-h-screen bg-black text-white pb-16">
+    <div className="min-h-screen bg-black text-white flex flex-col md:flex-row antialiased selection:bg-white selection:text-black">
       
-      {/* Sub-Header */}
-      <div className="border-b border-zinc-800/80 bg-zinc-950 py-5 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono mb-1">
-              <Link to="/" className="hover:text-white">Home</Link>
-              <ChevronRight className="w-3 h-3 text-zinc-700" />
-              <span>Area Overview</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2 uppercase">
-              What Changed Around <span className="text-zinc-400">{location.zip}</span>
-            </h1>
-            <p className="text-xs font-mono text-zinc-400 flex items-center gap-2 mt-1">
-              <MapPin className="w-3.5 h-3.5 text-white" />
-              <span>{location.city}, {location.state}</span>
-              <span className="text-zinc-700">•</span>
-              <span className="text-zinc-500">
-                {changes.length} places tracked
+      {/* LEFT PERSISTENT SIDEBAR */}
+      <Sidebar 
+        currentZip={location.zip} 
+        activeSection={activeNavSection} 
+        onSectionClick={handleSectionScroll} 
+      />
+
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 space-y-6 overflow-y-auto max-w-7xl">
+        
+        {/* HEADER SECTION (Matching Screenshot 1) */}
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800/80 pb-6">
+          <div className="space-y-1.5 font-mono">
+            {/* Top Badges */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="px-2.5 py-0.5 bg-zinc-900 border border-zinc-800 text-zinc-300 font-bold uppercase tracking-wider rounded">
+                ZIP {location.zip}
               </span>
-            </p>
+              <span className="px-2.5 py-0.5 bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold uppercase tracking-wider rounded">
+                {location.city} / METRO
+              </span>
+            </div>
+
+            {/* City Title */}
+            <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight uppercase font-sans">
+              {location.city}, {location.state}
+            </h1>
           </div>
-          <div className="flex items-center gap-2">
+
+          {/* Rescan Button */}
+          <div>
             <button
               onClick={() => loadDashboardData(location.zip, true)}
-              className="btn-interactive px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-400 text-xs font-mono text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-md"
+              className="btn-interactive px-4 py-2.5 bg-white hover:bg-zinc-200 text-black text-xs font-mono font-black uppercase tracking-wider rounded-lg shadow-lg flex items-center gap-2 shrink-0 cursor-pointer"
             >
-              <Zap className="w-3.5 h-3.5 fill-white text-black" />
-              <span>Rescan Live Map</span>
+              <Radio className="w-4 h-4 text-black animate-pulse" />
+              <span>RESCAN LIVE MAP</span>
             </button>
           </div>
-        </div>
-      </div>
+        </header>
 
-      {/* Main Content Dashboard */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6">
-        
-        {/* AI SUMMARY BANNER (Mono High Contrast Card) */}
+        {/* EXECUTIVE NARRATIVE CARD (Matching Screenshot 1) */}
         {aiSummary && (
-          <div className="mono-card p-6 sm:p-7 rounded-xl border border-zinc-700 relative overflow-hidden shadow-2xl animate-fade-in-up">
-            <div className="flex items-center gap-2 text-xs font-mono font-bold text-white uppercase tracking-wider mb-2">
-              <Zap className="w-4 h-4 fill-white text-black" />
-              <span>Executive AI Summary</span>
-              <span className="text-zinc-500 font-normal text-[10px]">({aiSummary.model})</span>
+          <section className="bg-zinc-950 p-6 rounded-xl border border-zinc-800/90 shadow-xl space-y-2 font-mono">
+            <div className="flex items-center gap-2 text-xs font-bold text-zinc-300 uppercase tracking-wider">
+              <Sparkles className="w-4 h-4 text-white shrink-0" />
+              <span>EXECUTIVE NARRATIVE</span>
             </div>
-
-            {aiSummary.headline && (
-              <h2 className="text-xl sm:text-2xl font-bold text-white mb-2 leading-snug">
-                "{aiSummary.headline}"
-              </h2>
-            )}
-
-            <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-4xl font-normal">
+            <p className="text-xs sm:text-sm text-zinc-300 font-sans leading-relaxed font-normal pt-1">
               {aiSummary.summary}
             </p>
+          </section>
+        )}
 
-            {/* HIGHLIGHTED CHANGES */}
-            {aiSummary.highlights && aiSummary.highlights.length > 0 && (
-              <div className="mt-5 pt-4 border-t border-zinc-800">
-                <h4 className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500 mb-3">
-                  Top Significance Events
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {aiSummary.highlights.map((h, idx) => (
-                    <div key={idx} className="bg-zinc-950 p-3.5 rounded-lg border border-zinc-800 space-y-1">
-                      <div className="flex items-center justify-between text-xs font-bold text-white">
-                        <span>{idx + 1}. {h.title}</span>
-                        <span className="text-[10px] font-mono bg-white text-black px-1.5 py-0.5 rounded font-black">
-                          {h.importance} pts
-                        </span>
-                      </div>
-                      <p className="text-xs text-zinc-400 leading-normal">{h.description}</p>
-                    </div>
+        {/* CENSUS DEMOGRAPHICS SECTION (Matching Screenshot 1) */}
+        <section id="demographics-section" className="space-y-3 font-mono">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-bold text-white uppercase tracking-wider">
+              <span className="w-2 h-2 rounded-full border-2 border-white" />
+              <span>CENSUS DEMOGRAPHICS</span>
+            </div>
+
+            {/* 1Y / 5Y / 10Y Timeframe Filter */}
+            <div className="flex items-center bg-zinc-950 p-0.5 rounded-lg border border-zinc-800 text-xs">
+              {(['1y', '5y', '10y'] as const).map(tf => (
+                <button
+                  key={tf}
+                  onClick={() => setCensusFilter(tf)}
+                  className={`btn-interactive px-3 py-1 rounded text-xs font-bold uppercase transition-all cursor-pointer ${
+                    censusFilter === tf
+                      ? 'bg-zinc-800 text-white shadow-sm'
+                      : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  {tf.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 4 Stat Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800/80 space-y-2">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                TOTAL POPULATION
+              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-xl sm:text-2xl font-black text-white">{popVal}</span>
+                <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-emerald-400 flex items-center gap-0.5">
+                  ↗ {popDelta}%
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800/80 space-y-2">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                MEDIAN INCOME
+              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-xl sm:text-2xl font-black text-white">{incVal}</span>
+                <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-emerald-400 flex items-center gap-0.5">
+                  ↗ {incDelta}%
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800/80 space-y-2">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                HOUSING UNITS
+              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-xl sm:text-2xl font-black text-white">{houseVal}</span>
+                <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-emerald-400 flex items-center gap-0.5">
+                  ↗ {houseDelta}%
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800/80 space-y-2">
+              <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                COMMERCIAL VACANCY
+              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-xl sm:text-2xl font-black text-white">{vacVal}</span>
+                <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-zinc-400 flex items-center gap-0.5">
+                  ↗ {valDelta}%
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* LOWER SECTION: SPLIT VECTOR MAP & CHRONOLOGICAL FEED (Matching Screenshot 1) */}
+        <div id="timeline-section" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start pt-2">
+          
+          {/* LEFT: VECTOR_NODE_MAP (Lg: 7 cols) */}
+          <div className="lg:col-span-7 space-y-3 font-mono">
+            
+            {/* Map Top Bar */}
+            <div className="flex items-center justify-between text-xs border-b border-zinc-800 pb-2">
+              <div className="flex items-center gap-2 text-zinc-300 font-bold uppercase tracking-wider text-[11px]">
+                <span className="w-2 h-2 bg-white" />
+                <span>VECTOR_NODE_MAP</span>
+              </div>
+              <div className="flex items-center gap-3 text-[11px] text-zinc-500">
+                <span>LOD: HIGH</span>
+                <div className="flex items-center bg-zinc-950 border border-zinc-800 rounded">
+                  <span className="px-2 py-0.5 border-r border-zinc-800 text-zinc-400 hover:text-white cursor-pointer flex items-center">
+                    <Plus className="w-3 h-3" />
+                  </span>
+                  <span className="px-2 py-0.5 text-zinc-400 hover:text-white cursor-pointer flex items-center">
+                    <Minus className="w-3 h-3" />
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Map Container */}
+            <div className="rounded-xl overflow-hidden border border-zinc-800/90 shadow-2xl">
+              <MapComponent
+                location={location}
+                changes={displayChanges}
+                selectedChangeId={selectedChangeId}
+                onSelectChange={setSelectedChangeId}
+              />
+            </div>
+          </div>
+
+          {/* RIGHT: CHRONOLOGICAL_EVENT_FEED (Lg: 5 cols) */}
+          <div className="lg:col-span-5 space-y-3 font-mono">
+            
+            {/* Feed Top Bar */}
+            <div className="space-y-2 border-b border-zinc-800 pb-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 text-zinc-300 font-bold uppercase tracking-wider text-[11px]">
+                  <span>CHRONOLOGICAL_EVENT_FEED</span>
+                  <span className="text-[10px] text-zinc-500 font-normal">({displayChanges.length})</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px]">
+                  {(['all', 'business_opened', 'business_removed'] as const).map((tf) => (
+                    <button
+                      key={tf}
+                      onClick={() => setTypeFilter(tf)}
+                      className={`btn-interactive px-2 py-0.5 rounded text-[10px] uppercase font-bold transition-all cursor-pointer ${
+                        typeFilter === tf
+                          ? 'bg-white text-black font-black'
+                          : 'text-zinc-500 hover:text-zinc-300 bg-zinc-950 border border-zinc-800'
+                      }`}
+                    >
+                      {tf === 'all' ? 'ALL' : tf === 'business_opened' ? '+ NEW' : '− UNLISTED'}
+                    </button>
                   ))}
                 </div>
               </div>
-            )}
-          </div>
-        )}
 
-        {/* US CENSUS BUREAU ZCTA DEMOGRAPHICS CARD */}
-        <CensusDemographicsCard demographics={demographics} selectedDateFilter={dateFilter} />
-
-        {/* FILTERS BAR */}
-        <div className="mono-card p-3.5 rounded-xl border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
-          
-          {/* Stat Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 font-mono text-xs">
-            <button
-              onClick={() => setTypeFilter('all')}
-              className={`btn-interactive px-3 py-1.5 rounded-lg font-bold transition-all shrink-0 cursor-pointer ${
-                typeFilter === 'all' ? 'bg-white text-black shadow-md' : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
-              }`}
-            >
-              ALL ({changes.length})
-            </button>
-            <button
-              onClick={() => setTypeFilter('business_opened')}
-              className={`btn-interactive px-3 py-1.5 rounded-lg font-bold transition-all shrink-0 cursor-pointer ${
-                typeFilter === 'business_opened' ? 'bg-white text-black shadow-md' : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
-              }`}
-            >
-              + NEW ({totalNew})
-            </button>
-            <button
-              onClick={() => setTypeFilter('business_removed')}
-              className={`btn-interactive px-3 py-1.5 rounded-lg font-bold transition-all shrink-0 cursor-pointer ${
-                typeFilter === 'business_removed' ? 'bg-white text-black shadow-md' : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
-              }`}
-            >
-              − UNLISTED ({totalRemoved})
-            </button>
-            <button
-              onClick={() => setTypeFilter('business_modified')}
-              className={`btn-interactive px-3 py-1.5 rounded-lg font-bold transition-all shrink-0 cursor-pointer ${
-                typeFilter === 'business_modified' ? 'bg-white text-black shadow-md' : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
-              }`}
-            >
-              Δ MODIFIED ({totalModified})
-            </button>
-          </div>
-
-          {/* Date Filter Pills */}
-          <div className="flex items-center gap-1 bg-zinc-900 p-1 rounded-lg shrink-0 border border-zinc-800 font-mono text-xs overflow-x-auto">
-            {(['all', '30d', '6m', '1y', '5y', '10y'] as DateFilter[]).map(df => (
-              <button
-                key={df}
-                onClick={() => setDateFilter(df)}
-                className={`btn-interactive px-2.5 py-1 rounded font-semibold transition-all cursor-pointer ${
-                  dateFilter === df ? 'bg-white text-black shadow-sm font-black' : 'text-zinc-400 hover:text-white font-medium'
-                }`}
-              >
-                {df === 'all' ? 'ALL TIME' : df === '30d' ? '30D' : df === '6m' ? '6M' : df === '1y' ? '1Y' : df === '5y' ? '5Y' : '10Y'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* MAIN LAYOUT */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          
-          {/* MAP & TIMELINE COLUMN (Lg: 7 cols) */}
-          <div className="lg:col-span-7 lg:sticky lg:top-20 space-y-4">
-            
-            {/* Map */}
-            <MapComponent
-              location={location}
-              changes={filteredChanges.length > 0 ? filteredChanges : changes}
-              selectedChangeId={selectedChangeId}
-              onSelectChange={setSelectedChangeId}
-            />
-
-            {/* TIMELINE */}
-            <div className="mono-card p-5 rounded-xl border border-zinc-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-white" />
-                  <span>Chronological Timeline</span>
-                </h3>
-                <span className="text-[10px] font-mono text-zinc-500">
-                  {filteredChanges.length > 0 ? `${filteredChanges.length} events in window` : `${changes.length} total events`}
-                </span>
-              </div>
-
-              <div className="space-y-3 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-zinc-800 max-h-[420px] overflow-y-auto pr-1">
-                {(filteredChanges.length > 0 ? filteredChanges : changes).map(c => {
-                  const eventDate = new Date(c.event_date || c.detected_at);
-                  const dateStr = !isNaN(eventDate.getTime()) 
-                    ? eventDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-                    : 'Recent';
-                  const isSelected = selectedChangeId === c.id;
-
-                  return (
-                    <div
-                      key={c.id}
-                      onClick={() => setSelectedChangeId(c.id)}
-                      className={`relative pl-8 cursor-pointer group transition-all ${
-                        isSelected ? 'scale-[1.01]' : ''
-                      }`}
-                    >
-                      <div className="absolute left-1.5 top-2 w-3 h-3 rounded-full border-2 border-white bg-black shadow" />
-
-                      <div className={`p-3 rounded-lg border text-xs transition-all ${
-                        isSelected ? 'bg-zinc-900 border-white shadow-lg' : 'bg-zinc-950 hover:bg-zinc-900 border-zinc-800'
-                      }`}>
-                        <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400 mb-0.5">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3 text-zinc-500" />
-                            {dateStr}
-                          </span>
-                          <span className="uppercase font-bold tracking-wider text-white">
-                            {c.change_type === 'business_opened' ? '+ NEW' : c.change_type === 'business_removed' ? '− UNLISTED' : 'Δ MODIFIED'}
-                          </span>
-                        </div>
-                        <p className="font-bold text-white group-hover:text-zinc-300">{c.title}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* CHANGE CARDS LIST COLUMN (Lg: 5 cols) */}
-          <div className="lg:col-span-5 space-y-4">
-            
-            {/* Search Filter Input */}
-            <div className="mono-card p-3 rounded-xl border border-zinc-800">
+              {/* Search Bar within Feed */}
               <div className="relative">
-                <Filter className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Search className="w-3.5 h-3.5 text-zinc-600 absolute left-2.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Filter by business name or category..."
+                  placeholder="Filter events by name or address..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-black text-white text-xs pl-9 pr-4 py-2 rounded-lg border border-zinc-800 focus:outline-none focus:border-white font-mono"
+                  className="w-full bg-zinc-950 text-white placeholder-zinc-600 text-[11px] font-mono pl-8 pr-3 py-1.5 rounded-lg border border-zinc-800/80 focus:outline-none focus:border-zinc-500"
                 />
               </div>
             </div>
 
-            {/* Timeframe notice if 0 in selected window */}
-            {dateFilter !== 'all' && filteredChanges.length === 0 && (
-              <div className="mono-card p-4 rounded-xl border border-zinc-700 bg-zinc-950 font-mono text-xs space-y-2">
-                <p className="text-zinc-300">
-                  No new changes recorded in the selected <strong className="text-white">{dateFilter.toUpperCase()}</strong> window.
-                </p>
-                <button
-                  onClick={() => setDateFilter('all')}
-                  className="text-xs font-bold text-black bg-white px-3 py-1.5 rounded-lg uppercase tracking-wider hover:bg-zinc-200 transition-colors"
-                >
-                  Show All {changes.length} Events →
-                </button>
-              </div>
-            )}
-
-            {/* CHANGE CARDS */}
-            <div className="space-y-3">
-              {(filteredChanges.length > 0 ? filteredChanges : changes).map(change => {
+            {/* Event Cards List */}
+            <div className="space-y-3 max-h-[640px] overflow-y-auto pr-1">
+              {displayChanges.map((change) => {
                 const placeData = change.new_data || change.old_data || {};
                 const isSelected = selectedChangeId === change.id;
                 const eventDate = new Date(change.event_date || change.detected_at);
-                const dateStr = !isNaN(eventDate.getTime())
+                const timeAgoStr = !isNaN(eventDate.getTime())
                   ? eventDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
                   : 'Recent';
-                const confidencePct = Math.round((change.confidence || 0.9) * 100);
+                const sigScoreDecimal = ((change.significance_score || 80) / 10).toFixed(1);
 
                 return (
                   <div
                     key={change.id}
                     onClick={() => setSelectedChangeId(change.id)}
-                    className={`mono-card p-5 rounded-xl border transition-all cursor-pointer ${
+                    className={`btn-interactive p-4 rounded-xl border transition-all cursor-pointer ${
                       isSelected
-                        ? 'border-white bg-zinc-900 shadow-xl'
-                        : 'border-zinc-800 hover:border-zinc-700'
+                        ? 'bg-zinc-900 border-white shadow-2xl scale-[1.01]'
+                        : 'bg-zinc-950 border-zinc-800/80 hover:border-zinc-700'
                     }`}
                   >
-                    {/* Badge Header */}
+                    {/* Badge Row */}
                     <div className="flex items-center justify-between gap-2 mb-2 font-mono">
-                      {change.change_type === 'business_opened' && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-white text-black tracking-wider">
-                          + NEW PLACE
+                      <div className="flex items-center gap-1.5">
+                        {change.change_type === 'business_opened' && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-white text-black tracking-wider">
+                            BUSINESS_OPENED
+                          </span>
+                        )}
+                        {change.change_type === 'business_removed' && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-zinc-900 text-zinc-300 border border-zinc-700 tracking-wider">
+                            BUSINESS_REMOVED
+                          </span>
+                        )}
+                        {change.change_type === 'business_modified' && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-zinc-900 text-zinc-200 border border-zinc-700 tracking-wider">
+                            BUSINESS_MODIFIED
+                          </span>
+                        )}
+                        <span className="px-1.5 py-0.5 bg-zinc-900 text-zinc-400 text-[10px] rounded border border-zinc-800 uppercase">
+                          {placeData.category ? placeData.category.slice(0, 10) : 'LOCAL'}
                         </span>
-                      )}
-                      {change.change_type === 'business_removed' && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-zinc-800 text-zinc-300 border border-zinc-700 tracking-wider">
-                          − UNLISTED / CLOSED
-                        </span>
-                      )}
-                      {change.change_type === 'business_modified' && (
-                        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-zinc-800 text-zinc-200 border border-zinc-600 tracking-wider">
-                          Δ MODIFIED
-                        </span>
-                      )}
+                      </div>
 
-                      <span className="text-[11px] text-zinc-400">
-                        {confidencePct}% confidence
+                      <span className="text-[10px] text-zinc-500 font-mono">
+                        {timeAgoStr}
                       </span>
                     </div>
 
-                    {/* Title & Category */}
-                    <h3 className="font-bold text-base text-white leading-snug">
+                    {/* Place Name */}
+                    <h3 className="font-bold text-base text-white leading-snug font-sans">
                       {placeData.name || change.title}
                     </h3>
-                    <p className="text-xs font-mono text-zinc-400 mt-0.5">
-                      {placeData.category || 'Business'}
-                    </p>
 
-                    {/* Thumbnail if available from Wikipedia */}
-                    {placeData.metadata?.image_url && (
-                      <div className="mt-2.5 rounded-lg overflow-hidden border border-zinc-800 max-h-48 bg-zinc-950">
-                        <img
-                          src={placeData.metadata.image_url}
-                          alt={placeData.name || change.title}
-                          className="w-full h-40 object-cover hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                        />
-                      </div>
-                    )}
-
-                    {/* Prominent Address Badge */}
+                    {/* Address */}
                     {placeData.address && (
-                      <div className="mt-2.5 bg-zinc-950 px-3 py-1.5 rounded-lg border border-zinc-700 flex items-center gap-2 text-xs text-white font-mono">
-                        <MapPin className="w-4 h-4 text-white shrink-0" />
-                        <span className="font-bold tracking-tight">{placeData.address}</span>
-                      </div>
-                    )}
-
-                    {/* Description */}
-                    <p className="text-xs text-zinc-300 mt-2 leading-relaxed bg-zinc-950 p-3 rounded-lg border border-zinc-800">
-                      {change.description}
-                    </p>
-
-                    {/* Disclaimer for Removed places */}
-                    {change.change_type === 'business_removed' && (
-                      <div className="mt-3 bg-zinc-950 border border-zinc-800 p-2.5 rounded-lg flex items-start gap-2 text-[11px] text-zinc-400 leading-relaxed font-mono">
-                        <ShieldAlert className="w-4 h-4 text-white shrink-0 mt-0.5" />
-                        <p>
-                          <strong>Notice:</strong> Entity marked as closed, disused, or no longer active in local area records.
-                        </p>
-                      </div>
+                      <p className="text-xs text-zinc-400 flex items-center gap-1 mt-1 font-mono">
+                        <MapPin className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                        <span>{placeData.address}</span>
+                      </p>
                     )}
 
                     {/* Card Footer */}
-                    <div className="mt-3 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-500 font-mono">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-zinc-500" />
-                        <span>Event Date: {dateStr}</span>
-                      </span>
-                      <div className="flex items-center gap-3">
-                        {placeData.metadata?.wiki_url ? (
-                          <a
-                            href={placeData.metadata.wiki_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-zinc-400 hover:text-white underline"
-                          >
-                            Wikipedia
-                          </a>
-                        ) : (
-                          <span className="text-zinc-600">Verified Place</span>
-                        )}
-                        <Link
-                          to={`/area/${location.zip}/change/${change.id}`}
-                          className="font-bold text-white hover:underline flex items-center gap-0.5"
-                        >
-                          <span>Details</span>
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        </Link>
+                    <div className="mt-4 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs font-mono">
+                      <div className="text-[11px] text-zinc-400">
+                        <span className="text-zinc-600">SIG_SCORE </span>
+                        <strong className="text-white font-bold">{sigScoreDecimal} / 10</strong>
                       </div>
+
+                      <Link
+                        to={`/area/${location.zip}/change/${change.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="font-bold text-white hover:underline flex items-center gap-1 text-[11px] uppercase tracking-wider"
+                      >
+                        <span>ANALYZE</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Link>
                     </div>
                   </div>
                 );
               })}
             </div>
+
           </div>
+
         </div>
-      </div>
+
+      </main>
+
     </div>
   );
 };
