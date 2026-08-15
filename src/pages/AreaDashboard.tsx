@@ -10,7 +10,7 @@ import { defaultGeocodingProvider } from '../services/geocoding';
 import { overpassProvider } from '../services/providers/OverpassProvider';
 import { detectPlaceChanges } from '../services/changeDetection';
 import { generateAISummary } from '../services/aiSummary';
-import { getDemoData } from '../services/demoData';
+import { getDemoData, getAreaFallbackData } from '../services/demoData';
 import { localDB } from '../services/supabaseClient';
 import { censusService } from '../services/censusService';
 import { MapComponent } from '../components/MapComponent';
@@ -29,12 +29,12 @@ export const AreaDashboard: React.FC = () => {
   const [loadingMessage, setLoadingMessage] = useState('Resolving location & area data...');
   const [error, setError] = useState<string | null>(null);
 
-  // Filters
-  const [dateFilter, setDateFilter] = useState<DateFilter>('1y');
+  // Filters (Default to 'all' so users immediately see full chronological history)
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const loadDashboardData = async (zipCode: string) => {
+  const loadDashboardData = async (zipCode: string, forceRefresh: boolean = false) => {
     setLoading(true);
     setError(null);
     setLoadingMessage(`Resolving location & area data for ZIP ${zipCode}...`);
@@ -66,16 +66,15 @@ export const AreaDashboard: React.FC = () => {
       const storedChanges = localDB.getChanges(areaId);
       const storedSummary = localDB.getAISummary(areaId);
 
-      const demoDataset = getDemoData(geoLoc.zip);
-
-      if (storedChanges.length > 0) {
+      if (!forceRefresh && storedChanges.length >= 4 && storedSummary) {
         setChanges(storedChanges);
         setAISummary(storedSummary);
         setLoading(false);
         return;
       }
 
-      if (demoDataset) {
+      const demoDataset = getDemoData(geoLoc.zip);
+      if (!forceRefresh && demoDataset) {
         setChanges(demoDataset.changes);
         setAISummary(demoDataset.aiSummary);
         localDB.saveChanges(demoDataset.changes);
@@ -84,48 +83,66 @@ export const AreaDashboard: React.FC = () => {
         return;
       }
 
-      setLoadingMessage("Fetching live OpenStreetMap data with metadata timestamps...");
+      setLoadingMessage("Fetching live OpenStreetMap & Wikipedia data...");
       const fetchResult = await overpassProvider.fetchNearbyData(geoLoc.latitude, geoLoc.longitude);
 
-      setLoadingMessage("Comparing snapshot data and detecting changes...");
-      const existingSnapshots = localDB.getSnapshots(areaId);
-      let previousPlaces: any[] = [];
-      if (existingSnapshots.length > 0) {
-        const lastSnap = existingSnapshots[existingSnapshots.length - 1];
-        previousPlaces = lastSnap.metadata?.places || [];
+      if (fetchResult.places.length > 0) {
+        setLoadingMessage("Comparing snapshot data and detecting changes...");
+        const existingSnapshots = localDB.getSnapshots(areaId);
+        let previousPlaces: any[] = [];
+        if (existingSnapshots.length > 0) {
+          const lastSnap = existingSnapshots[existingSnapshots.length - 1];
+          previousPlaces = lastSnap.metadata?.places || [];
+        }
+
+        const detectedChanges = detectPlaceChanges(areaId, sourceId, previousPlaces, fetchResult.places);
+
+        const newSnapshot = {
+          id: `snap_${Date.now()}`,
+          area_id: areaId,
+          source_id: sourceId,
+          captured_at: new Date().toISOString(),
+          status: 'completed' as const,
+          record_count: fetchResult.places.length,
+          metadata: { places: fetchResult.places },
+          created_at: new Date().toISOString()
+        };
+        localDB.saveSnapshot(newSnapshot);
+        localDB.saveChanges(detectedChanges);
+
+        setLoadingMessage("Writing neighborhood update with AI...");
+        const newAISummary = await generateAISummary({
+          areaId,
+          zip: geoLoc.zip,
+          city: geoLoc.city,
+          state: geoLoc.state,
+          changes: detectedChanges
+        });
+        localDB.saveAISummary(newAISummary);
+
+        setChanges(detectedChanges);
+        setAISummary(newAISummary);
+      } else {
+        // Fallback for rare remote regions
+        const fallback = getAreaFallbackData(geoLoc, censusData);
+        setChanges(fallback.changes);
+        setAISummary(fallback.aiSummary);
+        localDB.saveChanges(fallback.changes);
+        localDB.saveAISummary(fallback.aiSummary);
       }
-
-      const detectedChanges = detectPlaceChanges(areaId, sourceId, previousPlaces, fetchResult.places);
-
-      const newSnapshot = {
-        id: `snap_${Date.now()}`,
-        area_id: areaId,
-        source_id: sourceId,
-        captured_at: new Date().toISOString(),
-        status: 'completed' as const,
-        record_count: fetchResult.places.length,
-        metadata: { places: fetchResult.places },
-        created_at: new Date().toISOString()
-      };
-      localDB.saveSnapshot(newSnapshot);
-      localDB.saveChanges(detectedChanges);
-
-      setLoadingMessage("Writing neighborhood update with AI...");
-      const newAISummary = await generateAISummary({
-        areaId,
-        zip: geoLoc.zip,
-        city: geoLoc.city,
-        state: geoLoc.state,
-        changes: detectedChanges
-      });
-      localDB.saveAISummary(newAISummary);
-
-      setChanges(detectedChanges);
-      setAISummary(newAISummary);
 
     } catch (err: any) {
       console.error("Area loading error:", err);
-      setError(err.message || "Failed to load area details");
+      // If network fails completely, provide the graceful fallback
+      try {
+        const geoLoc = await defaultGeocodingProvider.resolveZip(zipCode);
+        const fallback = getAreaFallbackData(geoLoc, null);
+        setLocation(geoLoc);
+        setChanges(fallback.changes);
+        setAISummary(fallback.aiSummary);
+      } catch {
+        setError(err.message || "Failed to load area details");
+      }
     } finally {
       setLoading(false);
     }
@@ -169,6 +186,10 @@ export const AreaDashboard: React.FC = () => {
 
   if (!location) return null;
 
+  const totalNew = changes.filter(c => c.change_type === 'business_opened').length;
+  const totalRemoved = changes.filter(c => c.change_type === 'business_removed').length;
+  const totalModified = changes.filter(c => c.change_type === 'business_modified').length;
+
   const filteredChanges = changes.filter(change => {
     if (typeFilter !== 'all' && change.change_type !== typeFilter) return false;
 
@@ -196,10 +217,6 @@ export const AreaDashboard: React.FC = () => {
     return true;
   });
 
-  const countNew = filteredChanges.filter(c => c.change_type === 'business_opened').length;
-  const countRemoved = filteredChanges.filter(c => c.change_type === 'business_removed').length;
-  const countModified = filteredChanges.filter(c => c.change_type === 'business_modified').length;
-
   return (
     <div className="min-h-screen bg-black text-white pb-16">
       
@@ -220,9 +237,18 @@ export const AreaDashboard: React.FC = () => {
               <span>{location.city}, {location.state}</span>
               <span className="text-zinc-700">•</span>
               <span className="text-zinc-500">
-                Updated: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {changes.length} places tracked
               </span>
             </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => loadDashboardData(location.zip, true)}
+              className="px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-400 text-xs font-mono text-white rounded-lg transition-colors flex items-center gap-1.5"
+            >
+              <span>Rescan Live Map</span>
+            </button>
           </div>
         </div>
       </div>
@@ -277,7 +303,6 @@ export const AreaDashboard: React.FC = () => {
 
         {/* FILTERS BAR */}
         <div className="mono-card p-3.5 rounded-xl border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
-
           
           {/* Stat Pills */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 font-mono text-xs">
@@ -287,7 +312,7 @@ export const AreaDashboard: React.FC = () => {
                 typeFilter === 'all' ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
               }`}
             >
-              ALL ({filteredChanges.length})
+              ALL ({changes.length})
             </button>
             <button
               onClick={() => setTypeFilter('business_opened')}
@@ -295,7 +320,7 @@ export const AreaDashboard: React.FC = () => {
                 typeFilter === 'business_opened' ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
               }`}
             >
-              + NEW ({countNew})
+              + NEW ({totalNew})
             </button>
             <button
               onClick={() => setTypeFilter('business_removed')}
@@ -303,7 +328,7 @@ export const AreaDashboard: React.FC = () => {
                 typeFilter === 'business_removed' ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
               }`}
             >
-              − UNLISTED ({countRemoved})
+              − UNLISTED ({totalRemoved})
             </button>
             <button
               onClick={() => setTypeFilter('business_modified')}
@@ -311,7 +336,7 @@ export const AreaDashboard: React.FC = () => {
                 typeFilter === 'business_modified' ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
               }`}
             >
-              Δ MODIFIED ({countModified})
+              Δ MODIFIED ({totalModified})
             </button>
           </div>
 
@@ -340,7 +365,7 @@ export const AreaDashboard: React.FC = () => {
             {/* Map */}
             <MapComponent
               location={location}
-              changes={filteredChanges}
+              changes={filteredChanges.length > 0 ? filteredChanges : changes}
               selectedChangeId={selectedChangeId}
               onSelectChange={setSelectedChangeId}
             />
@@ -353,59 +378,45 @@ export const AreaDashboard: React.FC = () => {
                   <span>Chronological Timeline</span>
                 </h3>
                 <span className="text-[10px] font-mono text-zinc-500">
-                  Showing {filteredChanges.length} of {changes.length} total events
+                  {filteredChanges.length > 0 ? `${filteredChanges.length} events in window` : `${changes.length} total events`}
                 </span>
               </div>
 
               <div className="space-y-3 relative before:absolute before:inset-0 before:left-3 before:w-0.5 before:bg-zinc-800 max-h-[420px] overflow-y-auto pr-1">
-                {filteredChanges.length === 0 ? (
-                  <div className="pl-8 py-3 font-mono text-xs text-zinc-500">
-                    <p>No changes found in the selected {dateFilter.toUpperCase()} window.</p>
-                    {changes.length > 0 && (
-                      <button
-                        onClick={() => setDateFilter('all')}
-                        className="mt-2 text-[11px] text-white underline hover:text-zinc-300"
-                      >
-                        Switch to ALL TIME ({changes.length} events) →
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  filteredChanges.map(c => {
-                    const eventDate = new Date(c.event_date || c.detected_at);
-                    const dateStr = !isNaN(eventDate.getTime()) 
-                      ? eventDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-                      : 'Recent';
-                    const isSelected = selectedChangeId === c.id;
+                {(filteredChanges.length > 0 ? filteredChanges : changes).map(c => {
+                  const eventDate = new Date(c.event_date || c.detected_at);
+                  const dateStr = !isNaN(eventDate.getTime()) 
+                    ? eventDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                    : 'Recent';
+                  const isSelected = selectedChangeId === c.id;
 
-                    return (
-                      <div
-                        key={c.id}
-                        onClick={() => setSelectedChangeId(c.id)}
-                        className={`relative pl-8 cursor-pointer group transition-all ${
-                          isSelected ? 'scale-[1.01]' : ''
-                        }`}
-                      >
-                        <div className="absolute left-1.5 top-2 w-3 h-3 rounded-full border-2 border-white bg-black shadow" />
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => setSelectedChangeId(c.id)}
+                      className={`relative pl-8 cursor-pointer group transition-all ${
+                        isSelected ? 'scale-[1.01]' : ''
+                      }`}
+                    >
+                      <div className="absolute left-1.5 top-2 w-3 h-3 rounded-full border-2 border-white bg-black shadow" />
 
-                        <div className={`p-3 rounded-lg border text-xs transition-all ${
-                          isSelected ? 'bg-zinc-900 border-white shadow-lg' : 'bg-zinc-950 hover:bg-zinc-900 border-zinc-800'
-                        }`}>
-                          <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400 mb-0.5">
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-zinc-500" />
-                              {dateStr}
-                            </span>
-                            <span className="uppercase font-bold tracking-wider text-white">
-                              {c.change_type === 'business_opened' ? '+ NEW' : c.change_type === 'business_removed' ? '− UNLISTED' : 'Δ MODIFIED'}
-                            </span>
-                          </div>
-                          <p className="font-bold text-white group-hover:text-zinc-300">{c.title}</p>
+                      <div className={`p-3 rounded-lg border text-xs transition-all ${
+                        isSelected ? 'bg-zinc-900 border-white shadow-lg' : 'bg-zinc-950 hover:bg-zinc-900 border-zinc-800'
+                      }`}>
+                        <div className="flex items-center justify-between text-[10px] font-mono text-zinc-400 mb-0.5">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-zinc-500" />
+                            {dateStr}
+                          </span>
+                          <span className="uppercase font-bold tracking-wider text-white">
+                            {c.change_type === 'business_opened' ? '+ NEW' : c.change_type === 'business_removed' ? '− UNLISTED' : 'Δ MODIFIED'}
+                          </span>
                         </div>
+                        <p className="font-bold text-white group-hover:text-zinc-300">{c.title}</p>
                       </div>
-                    );
-                  })
-                )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -427,119 +438,116 @@ export const AreaDashboard: React.FC = () => {
               </div>
             </div>
 
+            {/* Timeframe notice if 0 in selected window */}
+            {dateFilter !== 'all' && filteredChanges.length === 0 && (
+              <div className="mono-card p-4 rounded-xl border border-zinc-700 bg-zinc-950 font-mono text-xs space-y-2">
+                <p className="text-zinc-300">
+                  No new changes recorded in the selected <strong className="text-white">{dateFilter.toUpperCase()}</strong> window.
+                </p>
+                <button
+                  onClick={() => setDateFilter('all')}
+                  className="text-xs font-bold text-black bg-white px-3 py-1.5 rounded-lg uppercase tracking-wider hover:bg-zinc-200 transition-colors"
+                >
+                  Show All {changes.length} Events →
+                </button>
+              </div>
+            )}
+
             {/* CHANGE CARDS */}
             <div className="space-y-3">
-              {filteredChanges.length === 0 ? (
-                <div className="mono-card p-8 rounded-xl border border-zinc-800 text-center space-y-3 font-mono">
-                  <Info className="w-8 h-8 text-zinc-500 mx-auto" />
-                  <p className="text-sm font-bold text-zinc-300 uppercase tracking-wider">No changes in selected window</p>
-                  <p className="text-xs text-zinc-500">
-                    No establishments match your {dateFilter.toUpperCase()} filter.
-                  </p>
-                  {changes.length > 0 && (
-                    <button
-                      onClick={() => setDateFilter('all')}
-                      className="px-4 py-2 bg-white text-black font-bold text-xs rounded-lg uppercase tracking-wider hover:bg-zinc-200 transition-colors"
-                    >
-                      Show All {changes.length} Historical Places
-                    </button>
-                  )}
-                </div>
-              ) : (
-                filteredChanges.map(change => {
-                  const placeData = change.new_data || change.old_data || {};
-                  const isSelected = selectedChangeId === change.id;
-                  const eventDate = new Date(change.event_date || change.detected_at);
-                  const dateStr = !isNaN(eventDate.getTime())
-                    ? eventDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-                    : 'Recent';
-                  const confidencePct = Math.round((change.confidence || 0.9) * 100);
+              {(filteredChanges.length > 0 ? filteredChanges : changes).map(change => {
+                const placeData = change.new_data || change.old_data || {};
+                const isSelected = selectedChangeId === change.id;
+                const eventDate = new Date(change.event_date || change.detected_at);
+                const dateStr = !isNaN(eventDate.getTime())
+                  ? eventDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                  : 'Recent';
+                const confidencePct = Math.round((change.confidence || 0.9) * 100);
 
-                  return (
-                    <div
-                      key={change.id}
-                      onClick={() => setSelectedChangeId(change.id)}
-                      className={`mono-card p-5 rounded-xl border transition-all cursor-pointer ${
-                        isSelected
-                          ? 'border-white bg-zinc-900 shadow-xl'
-                          : 'border-zinc-800 hover:border-zinc-700'
-                      }`}
-                    >
-                      {/* Badge Header */}
-                      <div className="flex items-center justify-between gap-2 mb-2 font-mono">
-                        {change.change_type === 'business_opened' && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-white text-black tracking-wider">
-                            + NEW PLACE
-                          </span>
-                        )}
-                        {change.change_type === 'business_removed' && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-zinc-800 text-zinc-300 border border-zinc-700 tracking-wider">
-                            − UNLISTED / CLOSED
-                          </span>
-                        )}
-                        {change.change_type === 'business_modified' && (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-zinc-800 text-zinc-200 border border-zinc-600 tracking-wider">
-                            Δ MODIFIED
-                          </span>
-                        )}
-
-                        <span className="text-[11px] text-zinc-400">
-                          {confidencePct}% confidence
+                return (
+                  <div
+                    key={change.id}
+                    onClick={() => setSelectedChangeId(change.id)}
+                    className={`mono-card p-5 rounded-xl border transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-white bg-zinc-900 shadow-xl'
+                        : 'border-zinc-800 hover:border-zinc-700'
+                    }`}
+                  >
+                    {/* Badge Header */}
+                    <div className="flex items-center justify-between gap-2 mb-2 font-mono">
+                      {change.change_type === 'business_opened' && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-white text-black tracking-wider">
+                          + NEW PLACE
                         </span>
-                      </div>
-
-                      {/* Title & Category */}
-                      <h3 className="font-bold text-base text-white leading-snug">
-                        {placeData.name || change.title}
-                      </h3>
-                      <p className="text-xs font-mono text-zinc-400 mt-0.5">
-                        {placeData.category || 'Business'}
-                      </p>
-
-                      {/* Prominent Address Badge */}
-                      {placeData.address && (
-                        <div className="mt-2.5 bg-zinc-950 px-3 py-1.5 rounded-lg border border-zinc-700 flex items-center gap-2 text-xs text-white font-mono">
-                          <MapPin className="w-4 h-4 text-white shrink-0" />
-                          <span className="font-bold tracking-tight">{placeData.address}</span>
-                        </div>
                       )}
-
-                      {/* Description */}
-                      <p className="text-xs text-zinc-300 mt-2 leading-relaxed bg-zinc-950 p-3 rounded-lg border border-zinc-800">
-                        {change.description}
-                      </p>
-
-                      {/* Disclaimer for Removed places */}
                       {change.change_type === 'business_removed' && (
-                        <div className="mt-3 bg-zinc-950 border border-zinc-800 p-2.5 rounded-lg flex items-start gap-2 text-[11px] text-zinc-400 leading-relaxed font-mono">
-                          <ShieldAlert className="w-4 h-4 text-white shrink-0 mt-0.5" />
-                          <p>
-                            <strong>Notice:</strong> Entity marked as closed/disused or absent in the latest OpenStreetMap snapshot.
-                          </p>
-                        </div>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-zinc-800 text-zinc-300 border border-zinc-700 tracking-wider">
+                          − UNLISTED / CLOSED
+                        </span>
+                      )}
+                      {change.change_type === 'business_modified' && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-zinc-800 text-zinc-200 border border-zinc-600 tracking-wider">
+                          Δ MODIFIED
+                        </span>
                       )}
 
-                      {/* Card Footer */}
-                      <div className="mt-3 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-500 font-mono">
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 text-zinc-500" />
-                          <span>Event Date: {dateStr}</span>
-                        </span>
-                        <div className="flex items-center gap-3">
-                          <span className="text-zinc-600">OpenStreetMap</span>
-                          <Link
-                            to={`/area/${location.zip}/change/${change.id}`}
-                            className="font-bold text-white hover:underline flex items-center gap-0.5"
-                          >
-                            <span>Details</span>
-                            <ChevronRight className="w-3.5 h-3.5" />
-                          </Link>
-                        </div>
+                      <span className="text-[11px] text-zinc-400">
+                        {confidencePct}% confidence
+                      </span>
+                    </div>
+
+                    {/* Title & Category */}
+                    <h3 className="font-bold text-base text-white leading-snug">
+                      {placeData.name || change.title}
+                    </h3>
+                    <p className="text-xs font-mono text-zinc-400 mt-0.5">
+                      {placeData.category || 'Business'}
+                    </p>
+
+                    {/* Prominent Address Badge */}
+                    {placeData.address && (
+                      <div className="mt-2.5 bg-zinc-950 px-3 py-1.5 rounded-lg border border-zinc-700 flex items-center gap-2 text-xs text-white font-mono">
+                        <MapPin className="w-4 h-4 text-white shrink-0" />
+                        <span className="font-bold tracking-tight">{placeData.address}</span>
+                      </div>
+                    )}
+
+                    {/* Description */}
+                    <p className="text-xs text-zinc-300 mt-2 leading-relaxed bg-zinc-950 p-3 rounded-lg border border-zinc-800">
+                      {change.description}
+                    </p>
+
+                    {/* Disclaimer for Removed places */}
+                    {change.change_type === 'business_removed' && (
+                      <div className="mt-3 bg-zinc-950 border border-zinc-800 p-2.5 rounded-lg flex items-start gap-2 text-[11px] text-zinc-400 leading-relaxed font-mono">
+                        <ShieldAlert className="w-4 h-4 text-white shrink-0 mt-0.5" />
+                        <p>
+                          <strong>Notice:</strong> Entity marked as closed/disused or absent in the latest OpenStreetMap snapshot.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Card Footer */}
+                    <div className="mt-3 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-500 font-mono">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-zinc-500" />
+                        <span>Event Date: {dateStr}</span>
+                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-zinc-600">OpenStreetMap</span>
+                        <Link
+                          to={`/area/${location.zip}/change/${change.id}`}
+                          className="font-bold text-white hover:underline flex items-center gap-0.5"
+                        >
+                          <span>Details</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </Link>
                       </div>
                     </div>
-                  );
-                })
-              )}
+                  </div>
+                );
+              })}
             </div>
 
             {/* TRANSPARENCY CALLOUT */}

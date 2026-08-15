@@ -1,4 +1,5 @@
 import { BaseDataProvider, type FetchResult, type NormalizedPlace } from './BaseProvider';
+import { wikipediaProvider } from './WikipediaProvider';
 
 export class OverpassProvider extends BaseDataProvider {
   readonly id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
@@ -7,24 +8,28 @@ export class OverpassProvider extends BaseDataProvider {
   readonly url = 'https://www.openstreetmap.org/';
   readonly description = 'Community-driven map data queried via Overpass API';
 
-  private endpoint = 'https://overpass-api.de/api/interpreter';
+  private endpoints = [
+    'https://overpass-api.de/api/interpreter',
+    'https://lz4.overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter'
+  ];
 
-  async fetchNearbyData(lat: number, lon: number, radiusMeters: number = 1800): Promise<FetchResult> {
+  async fetchNearbyData(lat: number, lon: number, radiusMeters: number = 3500): Promise<FetchResult> {
     // High-precision Overpass QL query capturing POIs, active & disused establishments with full metadata (timestamp, version, user)
     const query = `
 [out:json][timeout:25];
 (
-  node["amenity"~"restaurant|cafe|fast_food|bar|pub|bank|pharmacy|clinic|hospital|school|college|kindergarten|cinema|theatre|library"]["name"](around:${radiusMeters},${lat},${lon});
-  way["amenity"~"restaurant|cafe|fast_food|bar|pub|bank|pharmacy|clinic|hospital|school|college|kindergarten|cinema|theatre|library"]["name"](around:${radiusMeters},${lat},${lon});
+  node["amenity"~"restaurant|cafe|fast_food|bar|pub|bank|pharmacy|clinic|hospital|school|college|kindergarten|cinema|theatre|library|post_office|community_centre"]["name"](around:${radiusMeters},${lat},${lon});
+  way["amenity"~"restaurant|cafe|fast_food|bar|pub|bank|pharmacy|clinic|hospital|school|college|kindergarten|cinema|theatre|library|post_office|community_centre"]["name"](around:${radiusMeters},${lat},${lon});
   
   node["shop"]["name"](around:${radiusMeters},${lat},${lon});
   way["shop"]["name"](around:${radiusMeters},${lat},${lon});
   
-  node["leisure"~"fitness_centre|gym|sports_centre|park"]["name"](around:${radiusMeters},${lat},${lon});
-  way["leisure"~"fitness_centre|gym|sports_centre|park"]["name"](around:${radiusMeters},${lat},${lon});
+  node["leisure"~"fitness_centre|gym|sports_centre|park|playground|stadium"]["name"](around:${radiusMeters},${lat},${lon});
+  way["leisure"~"fitness_centre|gym|sports_centre|park|playground|stadium"]["name"](around:${radiusMeters},${lat},${lon});
   
-  node["tourism"~"hotel|hostel|motel|museum"]["name"](around:${radiusMeters},${lat},${lon});
-  way["tourism"~"hotel|hostel|motel|museum"]["name"](around:${radiusMeters},${lat},${lon});
+  node["tourism"~"hotel|hostel|motel|museum|attraction|gallery"]["name"](around:${radiusMeters},${lat},${lon});
+  way["tourism"~"hotel|hostel|motel|museum|attraction|gallery"]["name"](around:${radiusMeters},${lat},${lon});
   
   node["office"]["name"](around:${radiusMeters},${lat},${lon});
   way["office"]["name"](around:${radiusMeters},${lat},${lon});
@@ -41,41 +46,64 @@ export class OverpassProvider extends BaseDataProvider {
   node["abandoned:amenity"]["name"](around:${radiusMeters},${lat},${lon});
   way["abandoned:amenity"]["name"](around:${radiusMeters},${lat},${lon});
 );
-out center meta;
+out center meta 250;
 `;
 
-    try {
-      const response = await fetch(this.endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-        },
-        body: `data=${encodeURIComponent(query)}`
-      });
+    let lastError: Error | null = null;
+    let elements: any[] = [];
 
-      if (!response.ok) {
-        throw new Error(`Overpass API responded with status ${response.status}`);
+    // Try primary and fallback mirrors
+    for (const endpoint of this.endpoints) {
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'User-Agent': 'WhatChangedAroundMe/2.0 (contact@whatchanged.app)'
+          },
+          body: `data=${encodeURIComponent(query)}`
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          elements = data.elements || [];
+          if (elements.length > 0) {
+            break;
+          }
+        }
+      } catch (err: any) {
+        lastError = err;
       }
-
-      const data = await response.json();
-      const elements = data.elements || [];
-
-      // Strict filter: Require valid name and valid category
-      const normalizedPlaces: NormalizedPlace[] = elements
-        .filter((el: any) => el.tags && (el.tags.name || el.tags['brand'] || el.tags['official_name'] || el.tags['old_name']))
-        .map((el: any) => this.normalizeOSMElement(el));
-
-      return {
-        sourceName: this.name,
-        sourceType: this.sourceType,
-        places: normalizedPlaces,
-        rawCount: elements.length,
-        timestamp: new Date().toISOString()
-      };
-    } catch (err: any) {
-      console.error("Failed to query Overpass API:", err);
-      throw new Error(`Overpass data collection failed: ${err.message || 'Network error'}`);
     }
+
+    // Process OSM elements
+    const osmPlaces: NormalizedPlace[] = elements
+      .filter((el: any) => el.tags && (el.tags.name || el.tags['brand'] || el.tags['official_name'] || el.tags['old_name']))
+      .map((el: any) => this.normalizeOSMElement(el));
+
+    // Also fetch Wikipedia civic/historical landmarks to enrich data
+    let wikiPlaces: NormalizedPlace[] = [];
+    try {
+      const wikiResult = await wikipediaProvider.fetchNearbyData(lat, lon, radiusMeters);
+      wikiPlaces = wikiResult.places || [];
+    } catch {
+      // Non-blocking
+    }
+
+    // Merge and deduplicate by external_id
+    const combined = [...osmPlaces, ...wikiPlaces];
+
+    if (combined.length === 0 && lastError) {
+      console.warn("Overpass failed and no Wikipedia places found:", lastError);
+    }
+
+    return {
+      sourceName: this.name,
+      sourceType: this.sourceType,
+      places: combined,
+      rawCount: combined.length,
+      timestamp: new Date().toISOString()
+    };
   }
 
   private normalizeOSMElement(el: any): NormalizedPlace {
