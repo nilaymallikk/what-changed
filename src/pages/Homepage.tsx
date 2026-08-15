@@ -220,7 +220,7 @@ export const Homepage: React.FC = () => {
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
                 <h2 className="text-base sm:text-lg font-black text-white uppercase tracking-wider font-mono">
-                  Live Spatial Intelligence Simulator
+                  Live Spatial Intelligence
                 </h2>
               </div>
               <p className="text-xs text-zinc-400 mt-1 font-mono">
@@ -496,7 +496,6 @@ export const Homepage: React.FC = () => {
           <div className="flex flex-wrap items-center justify-center gap-5 text-zinc-400 text-xs">
             <Link to="/explore" className="hover:text-white transition-colors">Explore</Link>
             <Link to="/data-sources" className="hover:text-white transition-colors">Data Sources</Link>
-            <Link to="/docs" className="hover:text-white transition-colors">API Docs</Link>
             <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
             <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
             <span className="hover:text-white transition-colors cursor-pointer text-zinc-500" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>

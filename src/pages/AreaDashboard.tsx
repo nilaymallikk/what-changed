@@ -532,7 +532,6 @@ export const AreaDashboard: React.FC = () => {
             <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
             <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
             <Link to="/data-sources" className="hover:text-white transition-colors">Data Sources</Link>
-            <Link to="/docs" className="hover:text-white transition-colors">API Documentation</Link>
           </div>
         </footer>
 

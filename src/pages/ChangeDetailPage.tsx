@@ -340,10 +340,10 @@ export const ChangeDetailPage: React.FC = () => {
         <footer className="pt-12 pb-4 border-t border-zinc-900 text-[11px] font-mono text-zinc-500 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <p>© 2026 What Changed Around Me. All rights reserved.</p>
           <div className="flex flex-wrap items-center gap-5 text-zinc-400">
+            <Link to="/explore" className="hover:text-white transition-colors">Explore</Link>
             <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
             <Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
             <Link to="/data-sources" className="hover:text-white transition-colors">Data Sources</Link>
-            <Link to="/docs" className="hover:text-white transition-colors">API Documentation</Link>
           </div>
         </footer>
 

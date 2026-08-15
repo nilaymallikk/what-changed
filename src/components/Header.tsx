@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Zap, Compass, Database, BookOpen } from 'lucide-react';
+import { Zap, Compass, Database } from 'lucide-react';
 
 export const Header: React.FC = () => {
   return (
@@ -37,15 +37,6 @@ export const Header: React.FC = () => {
             <Database className="w-3.5 h-3.5 text-zinc-400" />
             <span className="hidden sm:inline">Data Sources</span>
             <span className="sm:hidden">Data</span>
-          </Link>
-
-          <Link
-            to="/docs"
-            className="btn-interactive px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all flex items-center gap-1.5"
-          >
-            <BookOpen className="w-3.5 h-3.5 text-zinc-400" />
-            <span className="hidden sm:inline">API Docs</span>
-            <span className="sm:hidden">Docs</span>
           </Link>
         </nav>
       </div>

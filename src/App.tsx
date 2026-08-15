@@ -6,7 +6,6 @@ import { AreaDashboard } from './pages/AreaDashboard';
 import { ChangeDetailPage } from './pages/ChangeDetailPage';
 import { ExplorePage } from './pages/ExplorePage';
 import { DataSourcesPage } from './pages/DataSourcesPage';
-import { DocsPage } from './pages/DocsPage';
 import { LegalPage } from './pages/LegalPage';
 
 function AppContent() {
@@ -23,7 +22,6 @@ function AppContent() {
           <Route path="/area/:zip/change/:id" element={<ChangeDetailPage />} />
           <Route path="/explore" element={<ExplorePage />} />
           <Route path="/data-sources" element={<DataSourcesPage />} />
-          <Route path="/docs" element={<DocsPage />} />
           <Route path="/terms" element={<LegalPage />} />
           <Route path="/privacy" element={<LegalPage />} />
         </Routes>

@@ -145,7 +145,7 @@ Every detected change is scored based on civic, commercial, and community weight
 - **Search Component**: 5-digit US ZIP code input with auto-formatting, validation, and instantaneous navigation.
 - **Trending ZIP Quick Chips**: 1-click exploratory chips for key metros (`90210` Beverly Hills, `77005` Houston, `10001` New York, `33139` Miami Beach, `60611` Chicago, `94102` San Francisco).
 - **Live Metrics Counter Bar**: Real-time stats ticker displaying 41,000+ US ZIP Codes, 100% Free Open Access, 10-Year Census Deltas, and Instant Spatial Scans.
-- **Interactive Spatial Intelligence Simulator**:
+- **Live Spatial Intelligence**:
   - Live rotating radar scanner preview with multi-sector filter chips (*All Activity*, *Dining & Cafes*, *Retail & Fashion*, *Civic & Landmarks*).
   - Interactive pulsing blips that synchronize with selectable result cards on click.
 - **How It Works 3-Step Flow**:
@@ -175,7 +175,7 @@ Every detected change is scored based on civic, commercial, and community weight
   - *Right Column*:
     - **Tag Analysis Diff**: Monospace comparison table (`KEY`, `PREVIOUS VALUE` with strikethrough, `PROPOSED VALUE`) tracking attribute shifts across versions.
     - **Payload JSON Inspector**: Syntax-highlighted JSON viewer with a 1-click `COPY` button.
-- **Standard System Footer**: Clean copyright and documentation links.
+- **Standard System Footer**: Clean copyright, terms, and privacy links.
 
 ---
 
