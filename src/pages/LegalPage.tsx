@@ -104,6 +104,29 @@ export const LegalPage: React.FC = () => {
 
       </div>
 
+      {/* FOOTER */}
+      <footer className="border-t border-zinc-900 py-10 text-xs text-zinc-500 font-mono">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+          <p>
+            Built by{' '}
+            <a
+              href="https://x.com/nilaymallikX"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-zinc-300 hover:text-white font-bold underline decoration-zinc-700 underline-offset-2 transition-colors"
+            >
+              Nilay Mallik
+            </a>{' '}
+            (<a href="https://x.com/nilaymallikX" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white">@nilaymallikX</a>)
+          </p>
+          <div className="flex flex-wrap items-center gap-5 text-zinc-400">
+            <Link to="/" className="hover:text-white transition-colors">Home</Link>
+            <Link to="/explore" className="hover:text-white transition-colors">Explore</Link>
+            <Link to="/data-sources" className="hover:text-white transition-colors">Data Sources</Link>
+          </div>
+        </div>
+      </footer>
+
     </div>
   );
 };

@@ -491,7 +491,18 @@ export const Homepage: React.FC = () => {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-1 text-center md:text-left">
             <p className="text-white font-bold tracking-wider uppercase">What Changed Around Me</p>
-            <p className="text-zinc-500 text-[11px]">© 2026 Open-Access Spatial Intelligence & Demographic Trends</p>
+            <p className="text-zinc-500 text-[11px]">
+              Built by{' '}
+              <a
+                href="https://x.com/nilaymallikX"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-zinc-300 hover:text-white font-bold underline decoration-zinc-700 underline-offset-2 transition-colors"
+              >
+                Nilay Mallik
+              </a>{' '}
+              (<a href="https://x.com/nilaymallikX" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white">@nilaymallikX</a>)
+            </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-5 text-zinc-400 text-xs">
             <Link to="/explore" className="hover:text-white transition-colors">Explore</Link>

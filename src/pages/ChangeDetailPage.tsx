@@ -338,7 +338,18 @@ export const ChangeDetailPage: React.FC = () => {
 
         {/* BOTTOM FOOTER (Matching Screenshot 2) */}
         <footer className="pt-12 pb-4 border-t border-zinc-900 text-[11px] font-mono text-zinc-500 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <p>© 2026 What Changed Around Me. All rights reserved.</p>
+          <p>
+            Built by{' '}
+            <a
+              href="https://x.com/nilaymallikX"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-zinc-300 hover:text-white font-bold underline decoration-zinc-700 underline-offset-2 transition-colors"
+            >
+              Nilay Mallik
+            </a>{' '}
+            (<a href="https://x.com/nilaymallikX" target="_blank" rel="noopener noreferrer" className="text-zinc-400 hover:text-white">@nilaymallikX</a>)
+          </p>
           <div className="flex flex-wrap items-center gap-5 text-zinc-400">
             <Link to="/explore" className="hover:text-white transition-colors">Explore</Link>
             <Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
