@@ -537,8 +537,8 @@ export default function Homepage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-5 text-zinc-400 text-xs">
+            <Link href="/compare" className="hover:text-white transition-colors">Compare</Link>
             <Link href="/explore" className="hover:text-white transition-colors">Explore</Link>
-            <Link href="/data-sources" className="hover:text-white transition-colors">Data Sources</Link>
             <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
             <span className="hover:text-white transition-colors cursor-pointer text-zinc-500" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>

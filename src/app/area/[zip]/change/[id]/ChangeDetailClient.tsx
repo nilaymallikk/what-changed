@@ -356,10 +356,10 @@ export const ChangeDetailClient: React.FC<Props> = ({ zip, id }) => {
             </a>
           </p>
           <div className="flex flex-wrap items-center gap-5 text-zinc-400">
+            <Link href="/compare" className="hover:text-white transition-colors">Compare</Link>
             <Link href="/explore" className="hover:text-white transition-colors">Explore</Link>
             <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-            <Link href="/data-sources" className="hover:text-white transition-colors">Data Sources</Link>
           </div>
         </footer>
 

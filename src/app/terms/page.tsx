@@ -85,8 +85,8 @@ export default function TermsPage() {
           </p>
           <div className="flex flex-wrap items-center gap-5 text-zinc-400">
             <Link href="/" className="hover:text-white transition-colors">Home</Link>
+            <Link href="/compare" className="hover:text-white transition-colors">Compare</Link>
             <Link href="/explore" className="hover:text-white transition-colors">Explore</Link>
-            <Link href="/data-sources" className="hover:text-white transition-colors">Data Sources</Link>
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
           </div>
         </div>

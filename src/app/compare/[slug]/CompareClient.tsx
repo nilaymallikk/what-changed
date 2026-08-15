@@ -466,7 +466,7 @@ export const CompareClient: React.FC<Props> = ({ slug }) => {
             <Link href="/" className="hover:text-white transition-colors">Home</Link>
             <Link href="/compare" className="hover:text-white transition-colors">Compare Hub</Link>
             <Link href="/explore" className="hover:text-white transition-colors">Explore</Link>
-            <Link href="/data-sources" className="hover:text-white transition-colors">Data Sources</Link>
+            <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
           </div>
         </div>
       </footer>

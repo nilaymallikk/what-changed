@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Zap, Compass, Database } from 'lucide-react';
+import { Zap, Compass } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const pathname = usePathname();
@@ -47,15 +47,6 @@ export const Header: React.FC = () => {
             <Compass className="w-3.5 h-3.5 text-zinc-400" />
             <span className="hidden sm:inline">Explore Metros</span>
             <span className="sm:hidden">Explore</span>
-          </Link>
-
-          <Link
-            href="/data-sources"
-            className="btn-interactive px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all flex items-center gap-1.5"
-          >
-            <Database className="w-3.5 h-3.5 text-zinc-400" />
-            <span className="hidden sm:inline">Data Sources</span>
-            <span className="sm:hidden">Data</span>
           </Link>
         </nav>
       </div>

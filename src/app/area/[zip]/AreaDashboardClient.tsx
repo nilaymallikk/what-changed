@@ -608,10 +608,10 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
             </a>
           </p>
           <div className="flex flex-wrap items-center gap-5 text-zinc-400">
+            <Link href="/compare" className="hover:text-white transition-colors">Compare Areas</Link>
             <Link href="/explore" className="hover:text-white transition-colors">Explore Metros</Link>
             <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
             <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
-            <Link href="/data-sources" className="hover:text-white transition-colors">Data Sources</Link>
           </div>
         </footer>
 
