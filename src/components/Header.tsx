@@ -3,7 +3,8 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Zap, Compass } from 'lucide-react';
+import { Compass } from 'lucide-react';
+import { BrandLogo } from './BrandLogo';
 
 export const Header: React.FC = () => {
   const pathname = usePathname();
@@ -19,10 +20,8 @@ export const Header: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         
         {/* Brand Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-lg bg-white text-black flex items-center justify-center font-black group-hover:bg-zinc-200 transition-colors">
-            <Zap className="w-4 h-4 fill-black" />
-          </div>
+        <Link href="/" className="flex items-center gap-3 group">
+          <BrandLogo className="w-8 h-8 group-hover:scale-105 transition-transform" />
           <div>
             <span className="text-sm sm:text-base font-black tracking-wider text-white uppercase font-sans">
               WHAT CHANGED <span className="text-zinc-400">AROUND ME</span>

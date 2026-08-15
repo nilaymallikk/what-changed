@@ -7,6 +7,8 @@ import {
   LayoutDashboard, Users, Clock, Search, Home 
 } from 'lucide-react';
 
+import { BrandLogo } from './BrandLogo';
+
 interface SidebarProps {
   currentZip?: string;
   activeSection?: 'overview' | 'demographics' | 'timeline';
@@ -32,14 +34,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       
       {/* Top Header & Brand */}
       <div>
-        <div className="p-6 border-b border-zinc-800/80">
-          <Link href="/" className="block group">
-            <h2 className="text-lg font-black tracking-tight text-white uppercase group-hover:text-zinc-200 transition-colors font-sans">
-              Intelligence
-            </h2>
-            <span className="text-[11px] text-zinc-500 tracking-wider block mt-0.5 font-mono uppercase">
-              Neighborhood Analysis
-            </span>
+        <div className="p-5 border-b border-zinc-800/80">
+          <Link href="/" className="flex items-center gap-3 group">
+            <BrandLogo className="w-7 h-7 shrink-0 group-hover:scale-105 transition-transform" />
+            <div>
+              <h2 className="text-sm font-black tracking-tight text-white uppercase group-hover:text-zinc-200 transition-colors font-sans leading-none">
+                WHAT CHANGED
+              </h2>
+              <span className="text-[10px] text-zinc-500 tracking-wider block mt-1 font-mono uppercase">
+                Spatial Intelligence
+              </span>
+            </div>
           </Link>
         </div>
 
