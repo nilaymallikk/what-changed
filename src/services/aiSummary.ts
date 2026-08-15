@@ -19,7 +19,7 @@ export async function generateAISummary(params: GenerateAISummaryParams): Promis
       period_start: new Date(Date.now() - 365 * 86400 * 1000).toISOString(),
       period_end: now,
       headline: `No recent changes detected in ${city} (${zip})`,
-      summary: `OpenStreetMap geographic records for ${city}, ${state} (${zip}) show a stable local commercial landscape with no recent business openings, unlisted entities, or major structural modifications.`,
+      summary: `Local community records for ${city}, ${state} (${zip}) show a stable local commercial landscape with no recent business openings, unlisted entities, or major structural modifications.`,
       highlights: [],
       generated_at: now,
       model: 'nvidia/nemotron-3-ultra-550b-a55b:free'
@@ -57,7 +57,7 @@ export async function generateAISummary(params: GenerateAISummaryParams): Promis
   const recentNew = newPlaces.filter(c => new Date(c.event_date).getTime() >= recentYearCutoff);
   const recentRemoved = removedPlaces.filter(c => new Date(c.event_date).getTime() >= recentYearCutoff);
 
-  let summaryText = `${city} (${zip}) records ${changes.length} place events across OpenStreetMap history. `;
+  let summaryText = `${city} (${zip}) records ${changes.length} place events across local area history. `;
   
   if (recentNew.length > 0) {
     const names = recentNew.slice(0, 2).map(c => c.new_data?.name || c.title).join(' and ');

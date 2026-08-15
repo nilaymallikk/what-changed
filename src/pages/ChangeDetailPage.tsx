@@ -137,9 +137,9 @@ export const ChangeDetailPage: React.FC = () => {
             <div className="bg-zinc-950 border border-zinc-800 p-4 rounded-lg flex items-start gap-3 text-xs text-zinc-400 leading-relaxed font-mono">
               <ShieldAlert className="w-5 h-5 text-white shrink-0 mt-0.5" />
               <div>
-                <strong className="font-bold text-white">Notice regarding OSM Disappearance:</strong>
+                <strong className="font-bold text-white">Notice regarding Unlisted Status:</strong>
                 <p className="mt-1">
-                  This indicates that the place is no longer present in the latest OpenStreetMap snapshot. It does not guarantee business closure.
+                  This indicates that the entity is no longer active in current local area records.
                 </p>
               </div>
             </div>
@@ -170,17 +170,19 @@ export const ChangeDetailPage: React.FC = () => {
             <div className="bg-zinc-950 p-4 rounded-lg border border-zinc-800">
               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mb-1">Data Source</span>
               <div className="text-base font-bold text-white flex items-center gap-1">
-                <span>{placeData.metadata?.wiki_url ? 'Wikipedia' : 'OpenStreetMap'}</span>
-                <a
-                  href={placeData.metadata?.wiki_url || "https://www.openstreetmap.org/"}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-zinc-400 hover:text-white"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
+                <span>{placeData.metadata?.wiki_url ? 'Wikipedia' : 'Public Map Records'}</span>
+                {placeData.metadata?.wiki_url && (
+                  <a
+                    href={placeData.metadata.wiki_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-zinc-400 hover:text-white"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                )}
               </div>
-              <span className="text-[11px] text-zinc-500 block mt-1">Ext ID: {change.entity_id}</span>
+              <span className="text-[11px] text-zinc-500 block mt-1">Ref ID: {change.entity_id}</span>
             </div>
           </div>
         </div>

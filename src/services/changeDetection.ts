@@ -73,7 +73,7 @@ export function classifyInitialPlaces(
     if (isClosed) {
       changeType = 'business_removed';
       title = `Closed / Unlisted: ${place.name}`;
-      description = `${place.name} (${place.category}) is recorded as disused or closed in OpenStreetMap records.`;
+      description = `${place.name} (${place.category}) is recorded as disused or closed in local area records.`;
       oldData = { ...place };
       newData = null;
       confidence = 0.92;
@@ -84,7 +84,7 @@ export function classifyInitialPlaces(
         description = `Name updated from "${oldName}" to "${place.name}".`;
         oldData = { ...place, name: oldName };
       } else {
-        description = `Place details and attributes updated in OpenStreetMap (revision v${version}).`;
+        description = `Place details and attributes updated in local records.`;
         oldData = { ...place, version: version - 1 };
       }
       confidence = 0.93;
@@ -218,7 +218,7 @@ export function detectPlaceChanges(
           entity_type: 'place',
           entity_id: currPlace.external_id,
           title: `Closed / Unlisted: ${currPlace.name}`,
-          description: `${currPlace.name} (${currPlace.category}) changed status to closed/disused in OpenStreetMap.`,
+          description: `${currPlace.name} (${currPlace.category}) changed status to closed/disused in local area records.`,
           old_data: { ...matchedPrev },
           new_data: null,
           source_id: sourceId,
@@ -244,7 +244,7 @@ export function detectPlaceChanges(
         if (nameChanged) modDesc = `Name changed from "${matchedPrev.name}" to "${currPlace.name}".`;
         else if (addrChanged) modDesc = `Address updated to ${currPlace.address}.`;
         else if (catChanged) modDesc = `Category reclassified from ${matchedPrev.category} to ${currPlace.category}.`;
-        else if (versionChanged) modDesc = `Place details updated in OpenStreetMap (revision v${currPlace.version}).`;
+        else if (versionChanged) modDesc = `Place details and attributes updated in local records.`;
 
         changes.push({
           id: `change_mod_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
@@ -279,7 +279,7 @@ export function detectPlaceChanges(
         entity_type: 'place',
         entity_id: prevPlace.external_id,
         title: `No longer listed: ${prevPlace.name}`,
-        description: `${prevPlace.name} (${prevPlace.category}) is no longer listed in the latest OpenStreetMap snapshot.`,
+        description: `${prevPlace.name} (${prevPlace.category}) is no longer active in current local records.`,
         old_data: { ...prevPlace },
         new_data: null,
         source_id: sourceId,

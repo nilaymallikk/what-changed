@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, Shield, Zap } from 'lucide-react';
+import { Search, Zap } from 'lucide-react';
 import { isValidUSZip } from '../services/geocoding';
 
 export const Header: React.FC = () => {
@@ -53,14 +53,13 @@ export const Header: React.FC = () => {
           </div>
         </form>
 
-        {/* Navigation Links */}
+        {/* Right Action */}
         <div className="flex items-center gap-3">
           <Link
-            to="/admin"
-            className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-mono flex items-center gap-1.5 transition-colors"
+            to="/"
+            className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-mono transition-colors"
           >
-            <Shield className="w-3.5 h-3.5 text-zinc-400" />
-            <span className="hidden md:inline">Pipeline Admin</span>
+            Explore Areas
           </Link>
         </div>
       </div>

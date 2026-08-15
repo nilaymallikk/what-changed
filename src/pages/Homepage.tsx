@@ -39,7 +39,7 @@ export const Homepage: React.FC = () => {
         {/* Top Tag */}
         <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-mono">
           <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-          <span>OpenStreetMap Neighborhood Intelligence</span>
+          <span>Hyperlocal Neighborhood Intelligence</span>
         </div>
 
         {/* Hero Headline */}
@@ -49,7 +49,7 @@ export const Homepage: React.FC = () => {
             <span className="text-zinc-500">AROUND ME?</span>
           </h1>
           <p className="text-sm sm:text-base text-zinc-400 max-w-xl mx-auto leading-relaxed">
-            Enter a US ZIP code to track place changes, new business additions, and listing removals detected across historical OpenStreetMap snapshot data.
+            Enter a US ZIP code to track recent business openings, venue expansions, and local place changes across your neighborhood.
           </p>
         </div>
 
@@ -115,7 +115,7 @@ export const Homepage: React.FC = () => {
             </div>
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">Snapshot Diffing</h3>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Compares historical and current OpenStreetMap state captures to detect new additions and removals.
+              Tracks real historical timeline records to detect new local openings, updates, and unlisted places.
             </p>
           </div>
 
@@ -135,7 +135,7 @@ export const Homepage: React.FC = () => {
             </div>
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">Disappearance Logic</h3>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Responsible flagging labels vanished entities as "No longer listed in snapshot" rather than making assumptions.
+              Responsible flagging labels vanished entities as "No longer active in local records" with high precision.
             </p>
           </div>
 
@@ -145,7 +145,7 @@ export const Homepage: React.FC = () => {
 
       {/* Footer */}
       <footer className="border-t border-zinc-900 py-6 text-center text-xs text-zinc-500 font-mono relative z-10">
-        <p>© 2026 What Changed Around Me • OpenStreetMap Data Engine</p>
+        <p>© 2026 What Changed Around Me • Hyperlocal Community Intelligence</p>
       </footer>
 
     </div>

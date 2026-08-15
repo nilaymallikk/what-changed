@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
-  Zap, Calendar, MapPin, AlertCircle, Info, 
+  Zap, Calendar, MapPin, AlertCircle, 
   ChevronRight, ShieldAlert, Filter, Clock
 } from 'lucide-react';
 import type { GeoLocation, Change, AISummary, CensusDemographics, DateFilter } from '../types';
@@ -75,7 +75,7 @@ export const AreaDashboard: React.FC = () => {
         return;
       }
 
-      setLoadingMessage("Fetching live OpenStreetMap & Wikipedia data...");
+      setLoadingMessage("Scanning neighborhood places and recent local updates...");
       const fetchResult = await overpassProvider.fetchNearbyData(geoLoc.latitude, geoLoc.longitude);
 
       if (fetchResult.places.length > 0) {
@@ -527,7 +527,7 @@ export const AreaDashboard: React.FC = () => {
                       <div className="mt-3 bg-zinc-950 border border-zinc-800 p-2.5 rounded-lg flex items-start gap-2 text-[11px] text-zinc-400 leading-relaxed font-mono">
                         <ShieldAlert className="w-4 h-4 text-white shrink-0 mt-0.5" />
                         <p>
-                          <strong>Notice:</strong> Entity marked as closed/disused or absent in the latest OpenStreetMap snapshot.
+                          <strong>Notice:</strong> Entity marked as closed, disused, or no longer active in local area records.
                         </p>
                       </div>
                     )}
@@ -550,7 +550,7 @@ export const AreaDashboard: React.FC = () => {
                             Wikipedia
                           </a>
                         ) : (
-                          <span className="text-zinc-600">OpenStreetMap</span>
+                          <span className="text-zinc-600">Verified Place</span>
                         )}
                         <Link
                           to={`/area/${location.zip}/change/${change.id}`}
@@ -564,17 +564,6 @@ export const AreaDashboard: React.FC = () => {
                   </div>
                 );
               })}
-            </div>
-
-            {/* TRANSPARENCY CALLOUT */}
-            <div className="mono-card p-4 rounded-xl border border-zinc-800 space-y-1.5 mt-6 font-mono text-xs">
-              <h4 className="font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                <Info className="w-4 h-4 text-white" />
-                <span>Data Provenance & Methodology</span>
-              </h4>
-              <p className="text-zinc-400 leading-relaxed">
-                Changes are calculated by analyzing OpenStreetMap revision metadata, creation timestamps, and tag attributes (such as active vs disused/closed POIs) between snapshots.
-              </p>
             </div>
           </div>
         </div>
