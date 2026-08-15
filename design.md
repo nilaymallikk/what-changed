@@ -1,0 +1,193 @@
+# What Changed Around Me — System Design & Architecture Specification
+
+`What Changed Around Me` is an open-data neighborhood intelligence platform that tracks temporal physical and commercial changes across US communities by analyzing OpenStreetMap metadata, Wikimedia / Wikipedia Geosearch, and US Census Bureau ACS demographic records.
+
+---
+
+## 1. Product Vision & Design Philosophy
+
+### 1.1 Core Utility
+When individuals explore a neighborhood (residents, prospective home buyers, journalists, city planners, local business owners), they want to answer:
+- *What new businesses, cafes, restaurants, or community facilities recently opened?*
+- *What places updated their branding, expanded, or relocated?*
+- *What establishments closed, fell disused, or were unlisted?*
+- *How has the demographic, economic, and housing baseline shifted over the last 1, 5, and 10 years?*
+
+### 1.2 Aesthetic Principles
+- **Monochrome Precision**: High-contrast, clean black-and-white visual identity (`#000000`, `#09090b`, `#18181b`, `#27272a`, `#ffffff`) prioritizing typography and map readability over decorative gimmicks.
+- **Typographic Duality**: Crisp modern sans-serif typography for headlines and descriptive copy paired with JetBrains Mono / monospace fonts for coordinates, revision numbers, timestamps, and confidence percentages.
+- **Zero Synthetic Fluff**: Complete absence of fake mock data. Every entity links directly to its underlying OpenStreetMap node/way revision or canonical Wikipedia article.
+- **Micro-Interactions**: Hover effects, responsive elevation transitions, synchronized map-marker highlighting, and fluid filter switches.
+
+---
+
+## 2. System Architecture
+
+```
+                                    +------------------------------------------+
+                                    |               USER INTERFACE             |
+                                    | (React 19 + Vite + TailwindCSS + Lucide) |
+                                    +------------------------------------------+
+                                                          |
+                                                          v
+                                    +------------------------------------------+
+                                    |         DATA RESOLUTION & ROUTING        |
+                                    |     (React Router DOM v7 + Geocoding)    |
+                                    +------------------------------------------+
+                                         /             |               \
+                                        v              v                v
++-----------------------------+  +----------------------------+  +----------------------------+
+|    OpenStreetMap Overpass   |  |     Wikipedia Geosearch    |  |     US Census Bureau ACS   |
+|   (Multi-Mirror Failover)   |  |   (Extracts + Page Images) |  |   (1Y, 5Y, 10Y Demographics|
++-----------------------------+  +----------------------------+  +----------------------------+
+                \                              |                              /
+                 -------------------------------------------------------------
+                                               |
+                                               v
+                                +------------------------------+
+                                |  CHANGE CLASSIFICATION &     |
+                                |  SIGNIFICANCE SCORING ENGINE |
+                                +------------------------------+
+                                               |
+                                               v
+                                +------------------------------+
+                                |      OPENROUTER AI ENGINE    |
+                                |  (Executive Summary + Trends)|
+                                +------------------------------+
+                                               |
+                                               v
+                                +------------------------------+
+                                |  SUPABASE POSTGRES / LOCALDB |
+                                |  (Fast Snapshots & Caching)  |
+                                +------------------------------+
+```
+
+---
+
+## 3. Data Ingestion & Provider Pipeline
+
+All integrated data providers are **100% free and open-access**:
+
+### 3.1 OpenStreetMap Overpass Provider (`OverpassProvider.ts`)
+- **Query Type**: Overpass QL with `out center meta 250;` retrieving complete element revision histories (`timestamp`, `version`, `user`, `changeset`).
+- **Resilience Multi-Mirror Failover**: Automatically cycles through primary and secondary Overpass mirrors if any endpoint is rate-limited:
+  1. `https://overpass-api.de/api/interpreter`
+  2. `https://lz4.overpass-api.de/api/interpreter`
+  3. `https://overpass.kumi.systems/api/interpreter`
+- **Search Radius**: Dynamic 3,500m radius covering complete ZIP code geographic perimeters.
+- **Domain Coverage**:
+  - *Dining & Food*: `restaurant`, `cafe`, `fast_food`, `bar`, `pub`, `ice_cream`, `bakery`, `food_court`
+  - *Retail & Shopping*: `shop=*`, `supermarket`, `convenience`, `clothes`, `electronics`, `beauty`, `mall`
+  - *Healthcare & Civic*: `hospital`, `clinic`, `pharmacy`, `dentist`, `school`, `college`, `library`, `post_office`, `community_centre`
+  - *Recreation & Hospitality*: `fitness_centre`, `gym`, `sports_centre`, `park`, `cinema`, `theatre`, `hotel`, `motel`
+  - *Disused & Vanished*: `disused:amenity`, `abandoned:amenity`, `closed=yes`, `disused:shop`
+
+### 3.2 Wikimedia / Wikipedia Geosearch Provider (`WikipediaProvider.ts`)
+- **API Endpoint**: `https://en.wikipedia.org/w/api.php?action=query&list=geosearch`
+- **Features Extracted**:
+  - Coordinates & proximity distance (`lat`, `lon`, `dist`)
+  - Encyclopedic summary extracts (`exintro=1`, `explaintext=1`)
+  - Wikimedia Commons photos & thumbnails (`piprop=thumbnail&pithumbsize=500`)
+  - Canonical live article URLs (`fullurl`)
+
+### 3.3 US Census Bureau Demographics Service (`censusService.ts`)
+- **Data Source**: US Census Bureau ACS (American Community Survey) 5-Year Data via ZCTA (ZIP Code Tabulation Areas).
+- **Tracked Metrics**:
+  - Total Population (`B01003_001E`)
+  - Total Households (`B11001_001E`)
+  - Median Household Income (`B19013_001E`)
+  - Housing Units (`B25001_001E`)
+  - Median Age (`B01002_001E`)
+  - Median Home Value (`B25077_001E`)
+- **Temporal Horizon Compounding**: Compares current baseline against 1-Year, 5-Year, and 10-Year historical demographic shifts with growth percentage tags.
+
+---
+
+## 4. Change Detection & Significance Scoring
+
+### 4.1 Temporal Classification Logic (`changeDetection.ts`)
+1. **`business_opened` (+ NEW PLACE)**:
+   - Elements where `version === 1`, or entities newly captured in the latest snapshot.
+   - Assigned true historical creation timestamp from OSM element metadata or start date.
+2. **`business_modified` (Δ MODIFIED)**:
+   - Elements where `version > 1`, or entities where tag attributes (name, category, operating hours, phone, website, address) changed between snapshots.
+   - Captures previous vs current values with exact diff descriptions.
+3. **`business_removed` (− UNLISTED / CLOSED)**:
+   - Entities explicitly tagged with `closed=yes`, `disused:*`, or `abandoned:*`.
+   - Entities previously present in earlier snapshots that are no longer returned in the latest map capture.
+
+### 4.2 Significance Scoring Algorithm (0–100 Scale)
+Every detected change is scored based on civic, commercial, and community weight:
+- **Baseline by Category**:
+  - Hospitals, Schools, Universities, Civic Libraries: **75–90 pts**
+  - Major Supermarkets, Department Stores: **70–85 pts**
+  - Restaurants, Cafes, Bakeries, Fitness Centers: **60–80 pts**
+  - Retail & Specialty Shops: **40–60 pts**
+- **Action Modifiers**:
+  - Brand new opening (`business_opened`): **+15 pts**
+  - Permanent closure / disused (`business_removed`): **+10 pts**
+  - Minor attribute modification: **-15 pts**
+- **Completeness Modifiers**:
+  - Street address mapped: **+5 pts**
+  - Opening hours / phone / website: **+5 pts**
+  - Wikipedia article association: **+10 pts**
+
+---
+
+## 5. User Interface & Page Design
+
+### 5.1 Homepage (`/`)
+- **Hero Section**: High-impact uppercase typography *"WHAT CHANGED AROUND ME?"* with live status indicator.
+- **Search Component**: 5-digit US ZIP code input with auto-formatting, validation, and instantaneous navigation.
+- **Popular Area Chips**: 1-click exploratory chips for key metros (`90210` Beverly Hills, `77005` Houston, `10001` New York, `33139` Miami Beach, `60611` Chicago, `94102` San Francisco).
+- **Core Value Highlights**: 3-card breakdown explaining Snapshot Diffing, AI Summarization, and Disappearance Transparency.
+
+### 5.2 Area Dashboard (`/area/:zip`)
+- **Header & Provenance**: Shows geocoded city, state, active ZIP code, total places tracked count, and a **"Rescan Live Map"** button.
+- **Executive AI Brief Card**: Highlights top 3 high-significance community changes and macro neighborhood narrative.
+- **Census Demographics Module**:
+  - Toggle between 1-Year, 5-Year, and 10-Year historical delta views.
+  - Interactive grid displaying Population, Median Income, Housing Occupancy, Median Age, and Median Home Value with color-coded trend pills.
+- **Multi-Dimensional Filters**:
+  - *Category Filter*: `ALL`, `+ NEW`, `− UNLISTED`, `Δ MODIFIED` with total dataset counts.
+  - *Timeframe Selector*: `ALL TIME`, `30D`, `6M`, `1Y`, `5Y`, `10Y`.
+- **Interactive Split View (Desktop)**:
+  - *Left Column (7 cols)*: Full vector MapLibre GL map with Carto Dark tiles and custom pins synchronized with a scrollable chronological timeline.
+  - *Right Column (5 cols)*: Live text search filter and rich change cards displaying photos, address badges, exact event dates, and provenance links.
+
+### 5.3 Change Detail View (`/area/:zip/change/:id`)
+- Deep drilldown page for individual changes.
+- Displays high-resolution photos, significance gauge, matching confidence percentage, pinpoint coordinates on a dedicated map, and raw side-by-side JSON snapshot diffs.
+
+### 5.4 System Admin & Pipeline Monitor (`/admin`)
+- Developer and data operator console to monitor table counts (`public.areas`, `public.snapshots`, `public.changes`, `data_fetch_runs`).
+- Manual pipeline execution buttons:
+  - `Fetch OSM Data`
+  - `Fetch Wikipedia Landmarks`
+  - `Compare Snapshot`
+  - `Generate AI Summary`
+- Real-time execution terminal console and data fetch runs log table.
+
+---
+
+## 6. Technology Stack
+
+| Layer | Technologies |
+|---|---|
+| **Frontend Framework** | React 19, TypeScript, Vite |
+| **Routing** | React Router DOM v7 |
+| **Styling** | Vanilla Tailwind CSS v4 with custom monochrome design tokens |
+| **Mapping Engine** | MapLibre GL JS with Carto Dark matter vector basemaps |
+| **Icons & Visuals** | Lucide React |
+| **Data Sources (100% Free)** | OpenStreetMap Overpass API, Wikipedia Geosearch, US Census Bureau ACS |
+| **AI Summarization** | OpenRouter (NVIDIA Nemotron / DeepSeek / Gemini models) |
+| **Database & Cache** | Supabase PostgreSQL + LocalStateStore (`LocalStorage v2`) |
+| **Linting & Code Quality** | Oxlint, TypeScript compiler (`tsc -b`) |
+
+---
+
+## 7. Security, Privacy & Data Provenance
+
+1. **Client-Side Privacy**: No user geolocation tracking without consent; searches are strictly based on standard 5-digit US ZIP codes.
+2. **Data Transparency**: Every change card explicitly labels whether the record originated from OpenStreetMap or Wikipedia, displaying element IDs and revision numbers.
+3. **Disappearance Logic Disclaimers**: Disappeared map elements are labeled as *"Entity marked as closed/disused or absent in the latest OpenStreetMap snapshot"* rather than making unverified legal assertions about business operations.
