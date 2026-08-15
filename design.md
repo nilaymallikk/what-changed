@@ -1,6 +1,6 @@
 # What Changed Around Me — System Design & Architecture Specification
 
-`What Changed Around Me` is an open-data neighborhood intelligence platform that tracks temporal physical and commercial changes across US communities by analyzing OpenStreetMap metadata, Wikimedia / Wikipedia Geosearch, and US Census Bureau ACS demographic records.
+`What Changed Around Me` is an open-data neighborhood intelligence platform that tracks temporal physical and commercial changes across US communities by analyzing geographic metadata, Wikimedia / Wikipedia Geosearch records, and US Census Bureau ACS demographic records.
 
 ---
 
@@ -13,11 +13,15 @@ When individuals explore a neighborhood (residents, prospective home buyers, jou
 - *What establishments closed, fell disused, or were unlisted?*
 - *How has the demographic, economic, and housing baseline shifted over the last 1, 5, and 10 years?*
 
-### 1.2 Aesthetic Principles
+### 1.2 Aesthetic & Micro-Interaction Principles
 - **Monochrome Precision**: High-contrast, clean black-and-white visual identity (`#000000`, `#09090b`, `#18181b`, `#27272a`, `#ffffff`) prioritizing typography and map readability over decorative gimmicks.
 - **Typographic Duality**: Crisp modern sans-serif typography for headlines and descriptive copy paired with JetBrains Mono / monospace fonts for coordinates, revision numbers, timestamps, and confidence percentages.
-- **Zero Synthetic Fluff**: Complete absence of fake mock data. Every entity links directly to its underlying OpenStreetMap node/way revision or canonical Wikipedia article.
-- **Micro-Interactions**: Hover effects, responsive elevation transitions, synchronized map-marker highlighting, and fluid filter switches.
+- **Micro-Interactions & Tactile Feedback**:
+  - `btn-interactive`: Smooth click scale depression (`active:scale-95` / `active:scale-[0.96]`) and elevation on hover (`translateY(-1px)`).
+  - `shimmer-text`: Elegant animated gradient sheen across hero highlights.
+  - `animate-radar-sweep`: Smooth rotating 360-degree radar scan line for spatial scanner previews.
+  - Synchronized map-marker pulsing and sector highlighting.
+- **Zero Synthetic Fluff**: Complete absence of fake mock data. Every entity links directly to verified geographic and encyclopedic data sources.
 
 ---
 
@@ -37,7 +41,7 @@ When individuals explore a neighborhood (residents, prospective home buyers, jou
                                          /             |               \
                                         v              v                v
 +-----------------------------+  +----------------------------+  +----------------------------+
-|    OpenStreetMap Overpass   |  |     Wikipedia Geosearch    |  |     US Census Bureau ACS   |
+|     Spatial Overpass Engine |  |     Wikipedia Geosearch    |  |     US Census Bureau ACS   |
 |   (Multi-Mirror Failover)   |  |   (Extracts + Page Images) |  |   (1Y, 5Y, 10Y Demographics|
 +-----------------------------+  +----------------------------+  +----------------------------+
                 \                              |                              /
@@ -57,7 +61,7 @@ When individuals explore a neighborhood (residents, prospective home buyers, jou
                                                |
                                                v
                                 +------------------------------+
-                                |  SUPABASE POSTGRES / LOCALDB |
+                                |  LOCALSTORE / SUPABASE DB    |
                                 |  (Fast Snapshots & Caching)  |
                                 +------------------------------+
 ```
@@ -68,9 +72,9 @@ When individuals explore a neighborhood (residents, prospective home buyers, jou
 
 All integrated data providers are **100% free and open-access**:
 
-### 3.1 OpenStreetMap Overpass Provider (`OverpassProvider.ts`)
+### 3.1 Spatial Overpass Provider (`OverpassProvider.ts`)
 - **Query Type**: Overpass QL with `out center meta 250;` retrieving complete element revision histories (`timestamp`, `version`, `user`, `changeset`).
-- **Resilience Multi-Mirror Failover**: Automatically cycles through primary and secondary Overpass mirrors if any endpoint is rate-limited:
+- **Resilience Multi-Mirror Failover**: Automatically cycles through primary and secondary mirrors if any endpoint is rate-limited:
   1. `https://overpass-api.de/api/interpreter`
   2. `https://lz4.overpass-api.de/api/interpreter`
   3. `https://overpass.kumi.systems/api/interpreter`
@@ -108,13 +112,13 @@ All integrated data providers are **100% free and open-access**:
 ### 4.1 Temporal Classification Logic (`changeDetection.ts`)
 1. **`business_opened` (+ NEW PLACE)**:
    - Elements where `version === 1`, or entities newly captured in the latest snapshot.
-   - Assigned true historical creation timestamp from OSM element metadata or start date.
+   - Assigned true historical creation timestamp from element metadata or start date.
 2. **`business_modified` (Δ MODIFIED)**:
    - Elements where `version > 1`, or entities where tag attributes (name, category, operating hours, phone, website, address) changed between snapshots.
    - Captures previous vs current values with exact diff descriptions.
 3. **`business_removed` (− UNLISTED / CLOSED)**:
    - Entities explicitly tagged with `closed=yes`, `disused:*`, or `abandoned:*`.
-   - Entities previously present in earlier snapshots that are no longer returned in the latest map capture.
+   - Entities previously present in earlier snapshots that are no longer active in the latest map capture.
 
 ### 4.2 Significance Scoring Algorithm (0–100 Scale)
 Every detected change is scored based on civic, commercial, and community weight:
@@ -137,13 +141,22 @@ Every detected change is scored based on civic, commercial, and community weight
 ## 5. User Interface & Page Design
 
 ### 5.1 Homepage (`/`)
-- **Hero Section**: High-impact uppercase typography *"WHAT CHANGED AROUND ME?"* with live status indicator.
+- **Hero Section**: High-impact uppercase typography *"WHAT CHANGED AROUND ME?"* with animated `shimmer-text` styling.
 - **Search Component**: 5-digit US ZIP code input with auto-formatting, validation, and instantaneous navigation.
-- **Popular Area Chips**: 1-click exploratory chips for key metros (`90210` Beverly Hills, `77005` Houston, `10001` New York, `33139` Miami Beach, `60611` Chicago, `94102` San Francisco).
-- **Core Value Highlights**: 3-card breakdown explaining Snapshot Diffing, AI Summarization, and Disappearance Transparency.
+- **Trending ZIP Quick Chips**: 1-click exploratory chips for key metros (`90210` Beverly Hills, `77005` Houston, `10001` New York, `33139` Miami Beach, `60611` Chicago, `94102` San Francisco).
+- **Live Metrics Counter Bar**: Real-time stats ticker displaying 41,000+ US ZIP Codes, 100% Free Open Access, 10-Year Census Deltas, and Instant Spatial Scans.
+- **Interactive Spatial Intelligence Simulator**:
+  - Live rotating radar scanner preview with multi-sector filter chips (*All Activity*, *Dining & Cafes*, *Retail & Fashion*, *Civic & Landmarks*).
+  - Interactive pulsing blips that synchronize with selectable result cards on click.
+- **How It Works 3-Step Flow**:
+  - `01`: Enter Any US ZIP
+  - `02`: Historical Snapshot Diffing
+  - `03`: AI Synthesis & Map View
+- **Featured Metros Explorer**: Interactive 6-metro visual directory with live activity tags and 1-click drilldowns.
+- **Interactive FAQ Accordion**: Expandable Q&A cards with smooth slide animations.
 
 ### 5.2 Area Dashboard (`/area/:zip`)
-- **Header & Provenance**: Shows geocoded city, state, active ZIP code, total places tracked count, and a **"Rescan Live Map"** button.
+- **Header & Controls**: Shows geocoded city, state, active ZIP code, total places tracked count, and a tactile **"Rescan Live Map"** button.
 - **Executive AI Brief Card**: Highlights top 3 high-significance community changes and macro neighborhood narrative.
 - **Census Demographics Module**:
   - Toggle between 1-Year, 5-Year, and 10-Year historical delta views.
@@ -153,20 +166,11 @@ Every detected change is scored based on civic, commercial, and community weight
   - *Timeframe Selector*: `ALL TIME`, `30D`, `6M`, `1Y`, `5Y`, `10Y`.
 - **Interactive Split View (Desktop)**:
   - *Left Column (7 cols)*: Full vector MapLibre GL map with Carto Dark tiles and custom pins synchronized with a scrollable chronological timeline.
-  - *Right Column (5 cols)*: Live text search filter and rich change cards displaying photos, address badges, exact event dates, and provenance links.
+  - *Right Column (5 cols)*: Live text search filter and rich change cards displaying photos, address badges, exact event dates, and detail drilldowns.
 
 ### 5.3 Change Detail View (`/area/:zip/change/:id`)
 - Deep drilldown page for individual changes.
 - Displays high-resolution photos, significance gauge, matching confidence percentage, pinpoint coordinates on a dedicated map, and raw side-by-side JSON snapshot diffs.
-
-### 5.4 System Admin & Pipeline Monitor (`/admin`)
-- Developer and data operator console to monitor table counts (`public.areas`, `public.snapshots`, `public.changes`, `data_fetch_runs`).
-- Manual pipeline execution buttons:
-  - `Fetch OSM Data`
-  - `Fetch Wikipedia Landmarks`
-  - `Compare Snapshot`
-  - `Generate AI Summary`
-- Real-time execution terminal console and data fetch runs log table.
 
 ---
 
@@ -176,10 +180,10 @@ Every detected change is scored based on civic, commercial, and community weight
 |---|---|
 | **Frontend Framework** | React 19, TypeScript, Vite |
 | **Routing** | React Router DOM v7 |
-| **Styling** | Vanilla Tailwind CSS v4 with custom monochrome design tokens |
+| **Styling & Animations** | Vanilla Tailwind CSS v4 with custom monochrome design tokens, radar sweeps, shimmers, and tactile `btn-interactive` click states |
 | **Mapping Engine** | MapLibre GL JS with Carto Dark matter vector basemaps |
 | **Icons & Visuals** | Lucide React |
-| **Data Sources (100% Free)** | OpenStreetMap Overpass API, Wikipedia Geosearch, US Census Bureau ACS |
+| **Data Sources (100% Free)** | Spatial Overpass Engine, Wikipedia Geosearch, US Census Bureau ACS |
 | **AI Summarization** | OpenRouter (NVIDIA Nemotron / DeepSeek / Gemini models) |
 | **Database & Cache** | Supabase PostgreSQL + LocalStateStore (`LocalStorage v2`) |
 | **Linting & Code Quality** | Oxlint, TypeScript compiler (`tsc -b`) |
@@ -189,5 +193,5 @@ Every detected change is scored based on civic, commercial, and community weight
 ## 7. Security, Privacy & Data Provenance
 
 1. **Client-Side Privacy**: No user geolocation tracking without consent; searches are strictly based on standard 5-digit US ZIP codes.
-2. **Data Transparency**: Every change card explicitly labels whether the record originated from OpenStreetMap or Wikipedia, displaying element IDs and revision numbers.
-3. **Disappearance Logic Disclaimers**: Disappeared map elements are labeled as *"Entity marked as closed/disused or absent in the latest OpenStreetMap snapshot"* rather than making unverified legal assertions about business operations.
+2. **Data Transparency**: Every change card explicitly labels verified place status or Wikipedia links.
+3. **Disappearance Logic Disclaimers**: Disappeared map elements are labeled as *"Entity marked as closed, disused, or no longer active in local area records"* rather than making unverified legal assertions about business operations.

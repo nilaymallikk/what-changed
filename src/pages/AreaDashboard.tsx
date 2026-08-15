@@ -233,20 +233,21 @@ export const AreaDashboard: React.FC = () => {
               </span>
             </p>
           </div>
-
           <div className="flex items-center gap-2">
             <button
               onClick={() => loadDashboardData(location.zip, true)}
-              className="px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-400 text-xs font-mono text-white rounded-lg transition-colors flex items-center gap-1.5"
+              className="btn-interactive px-3.5 py-2 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-400 text-xs font-mono text-white rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-md"
             >
+              <Zap className="w-3.5 h-3.5 fill-white text-black" />
               <span>Rescan Live Map</span>
             </button>
           </div>
         </div>
       </div>
 
+      {/* Main Content Dashboard */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 space-y-6">
-
+        
         {/* AI SUMMARY BANNER (Mono High Contrast Card) */}
         {aiSummary && (
           <div className="mono-card p-6 sm:p-7 rounded-xl border border-zinc-700 relative overflow-hidden shadow-2xl animate-fade-in-up">
@@ -300,32 +301,32 @@ export const AreaDashboard: React.FC = () => {
           <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 font-mono text-xs">
             <button
               onClick={() => setTypeFilter('all')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-colors shrink-0 ${
-                typeFilter === 'all' ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
+              className={`btn-interactive px-3 py-1.5 rounded-lg font-bold transition-all shrink-0 cursor-pointer ${
+                typeFilter === 'all' ? 'bg-white text-black shadow-md' : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
               }`}
             >
               ALL ({changes.length})
             </button>
             <button
               onClick={() => setTypeFilter('business_opened')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-colors shrink-0 ${
-                typeFilter === 'business_opened' ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
+              className={`btn-interactive px-3 py-1.5 rounded-lg font-bold transition-all shrink-0 cursor-pointer ${
+                typeFilter === 'business_opened' ? 'bg-white text-black shadow-md' : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
               }`}
             >
               + NEW ({totalNew})
             </button>
             <button
               onClick={() => setTypeFilter('business_removed')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-colors shrink-0 ${
-                typeFilter === 'business_removed' ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
+              className={`btn-interactive px-3 py-1.5 rounded-lg font-bold transition-all shrink-0 cursor-pointer ${
+                typeFilter === 'business_removed' ? 'bg-white text-black shadow-md' : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
               }`}
             >
               − UNLISTED ({totalRemoved})
             </button>
             <button
               onClick={() => setTypeFilter('business_modified')}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-colors shrink-0 ${
-                typeFilter === 'business_modified' ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
+              className={`btn-interactive px-3 py-1.5 rounded-lg font-bold transition-all shrink-0 cursor-pointer ${
+                typeFilter === 'business_modified' ? 'bg-white text-black shadow-md' : 'bg-zinc-900 text-zinc-300 hover:bg-zinc-800 border border-zinc-800'
               }`}
             >
               Δ MODIFIED ({totalModified})
@@ -338,7 +339,7 @@ export const AreaDashboard: React.FC = () => {
               <button
                 key={df}
                 onClick={() => setDateFilter(df)}
-                className={`px-2.5 py-1 rounded font-semibold transition-all ${
+                className={`btn-interactive px-2.5 py-1 rounded font-semibold transition-all cursor-pointer ${
                   dateFilter === df ? 'bg-white text-black shadow-sm font-black' : 'text-zinc-400 hover:text-white font-medium'
                 }`}
               >
