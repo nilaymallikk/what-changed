@@ -3,10 +3,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
-  MapPin, Sparkles, Plus, Minus,
+  MapPin, Plus, Minus,
   ArrowRight, Radio, Search, Share2, 
   ArrowLeftRight, Trophy, Loader2, Building2,
-  Users, DollarSign, Home, Key, AlertCircle, Calendar, GraduationCap
+  Users, DollarSign, Home, Key, AlertCircle, Calendar, GraduationCap,
+  ShieldCheck, CheckCircle2
 } from 'lucide-react';
 import type { GeoLocation, Change, AISummary, CensusDemographics } from '@/types';
 
@@ -21,6 +22,10 @@ import { calculateVitalityScore } from '@/services/vitalityScore';
 import { MapComponent } from '@/components/MapComponent';
 import { Sidebar } from '@/components/Sidebar';
 import { ShareModal } from '@/components/ShareModal';
+import { VitalityRadarChart } from '@/components/VitalityRadarChart';
+import { MigrationFlowWidget } from '@/components/MigrationFlowWidget';
+import { AIAudioBriefing } from '@/components/AIAudioBriefing';
+import { GroundVerifyModal } from '@/components/GroundVerifyModal';
 
 interface Props {
   zip: string;
@@ -33,7 +38,10 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
   const [demographics, setDemographics] = useState<CensusDemographics | null>(null);
   const [selectedChangeId, setSelectedChangeId] = useState<string | null>(null);
   const [activeNavSection, setActiveNavSection] = useState<'overview' | 'demographics' | 'timeline'>('overview');
+  
+  // Modals
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
+  const [verifyingChange, setVerifyingChange] = useState<Change | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [isRescanning, setIsRescanning] = useState(false);
@@ -168,6 +176,10 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
       const el = document.getElementById('timeline-section');
       if (el) el.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  const handleVerifiedChange = (updatedChange: Change) => {
+    setChanges(prev => prev.map(c => c.id === updatedChange.id ? updatedChange : c));
   };
 
   if (loading && !location) {
@@ -335,60 +347,68 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
             </div>
           </header>
 
-          {/* VITALITY SCORE CARD BANNER */}
-          <section className="bg-zinc-950 p-5 rounded-xl border border-zinc-800/90 shadow-xl space-y-3 font-mono">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-white uppercase tracking-wider">
-                <Trophy className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Neighborhood Vitality Index</span>
-                <span className="text-zinc-600">•</span>
-                <span className="text-[11px] font-bold text-emerald-400 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
-                  {vitality.tier}
-                </span>
+          {/* VITALITY SCORE CARD + 5-AXIS RADAR CHART GRID */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+            
+            {/* Vitality Summary (Lg: 6 cols) */}
+            <section className="lg:col-span-6 bg-zinc-950 p-5 rounded-xl border border-zinc-800/90 shadow-xl space-y-3 font-mono flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-3">
+                  <div className="flex items-center gap-2 text-xs font-bold text-white uppercase tracking-wider">
+                    <Trophy className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Neighborhood Vitality Index</span>
+                    <span className="text-zinc-600">•</span>
+                    <span className="text-[11px] font-bold text-emerald-400 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
+                      {vitality.tier}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="text-zinc-500">Score:</span>
+                    <span className="text-2xl font-black text-white">{vitality.score}</span>
+                    <span className="text-xs text-zinc-500">/ 100</span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-zinc-400 font-sans leading-relaxed font-normal">
+                  {vitality.tierDescription}
+                </p>
               </div>
 
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-zinc-500">Economic Health:</span>
-                <span className="text-xl font-black text-white">{vitality.score}</span>
-                <span className="text-xs text-zinc-500">/ 100</span>
+              <div className="grid grid-cols-2 gap-2 pt-2 text-[11px]">
+                <div className="bg-black p-2.5 rounded-lg border border-zinc-900">
+                  <span className="text-zinc-500 block">5Y Income Influx</span>
+                  <strong className="text-emerald-400 font-bold text-xs">+{vitality.metrics.incomeGrowthPct}%</strong>
+                </div>
+                <div className="bg-black p-2.5 rounded-lg border border-zinc-900">
+                  <span className="text-zinc-500 block">Tracked Openings</span>
+                  <strong className="text-white font-bold text-xs">{vitality.metrics.openedCount} New Places</strong>
+                </div>
+                <div className="bg-black p-2.5 rounded-lg border border-zinc-900">
+                  <span className="text-zinc-500 block">Housing Occupancy</span>
+                  <strong className="text-white font-bold text-xs">{vitality.metrics.occupancyRatePct}%</strong>
+                </div>
+                <div className="bg-black p-2.5 rounded-lg border border-zinc-900">
+                  <span className="text-zinc-500 block">Velocity Score</span>
+                  <strong className="text-white font-bold text-xs">{vitality.breakdown.commercialVelocityScore}/30 pts</strong>
+                </div>
               </div>
-            </div>
-
-            <p className="text-xs text-zinc-400 font-sans leading-relaxed font-normal">
-              {vitality.tierDescription}
-            </p>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px]">
-              <div className="bg-black p-2.5 rounded-lg border border-zinc-900">
-                <span className="text-zinc-500 block">5Y Income Shift</span>
-                <strong className="text-emerald-400 font-bold text-xs">+{vitality.metrics.incomeGrowthPct}%</strong>
-              </div>
-              <div className="bg-black p-2.5 rounded-lg border border-zinc-900">
-                <span className="text-zinc-500 block">Tracked Openings</span>
-                <strong className="text-white font-bold text-xs">{vitality.metrics.openedCount} New Places</strong>
-              </div>
-              <div className="bg-black p-2.5 rounded-lg border border-zinc-900">
-                <span className="text-zinc-500 block">Housing Units</span>
-                <strong className="text-white font-bold text-xs">{houseVal}</strong>
-              </div>
-              <div className="bg-black p-2.5 rounded-lg border border-zinc-900">
-                <span className="text-zinc-500 block">Velocity Weight</span>
-                <strong className="text-white font-bold text-xs">{vitality.breakdown.commercialVelocityScore}/30 pts</strong>
-              </div>
-            </div>
-          </section>
-
-          {/* EXECUTIVE NARRATIVE CARD */}
-          {aiSummary && (
-            <section className="bg-zinc-950 p-6 rounded-xl border border-zinc-800/90 shadow-xl space-y-2 font-mono">
-              <div className="flex items-center gap-2 text-xs font-bold text-zinc-300 uppercase tracking-wider">
-                <Sparkles className="w-4 h-4 text-white shrink-0" />
-                <span>EXECUTIVE NARRATIVE</span>
-              </div>
-              <p className="text-xs sm:text-sm text-zinc-300 font-sans leading-relaxed font-normal pt-1">
-                {aiSummary.summary}
-              </p>
             </section>
+
+            {/* 5-Axis Spider Chart (Lg: 6 cols) */}
+            <div className="lg:col-span-6">
+              <VitalityRadarChart vitality={vitality} />
+            </div>
+
+          </div>
+
+          {/* 60-SECOND AI AUDIO BRIEFING CARD */}
+          {aiSummary && (
+            <AIAudioBriefing
+              text={aiSummary.summary}
+              headline={aiSummary.headline}
+              locationName={`${location.city}, ${location.state}`}
+            />
           )}
 
           {/* 8 OFFICIAL US CENSUS ACS DEMOGRAPHICS */}
@@ -533,6 +553,9 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
             </div>
           </section>
 
+          {/* WHO'S MOVING IN MIGRATION FLOW WIDGET */}
+          <MigrationFlowWidget location={location} demographics={demographics} />
+
           {/* LOWER SECTION: SPLIT VECTOR MAP & CHRONOLOGICAL FEED */}
           <div id="timeline-section" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start pt-2">
             
@@ -610,7 +633,7 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
               </div>
 
               {/* Event Cards List */}
-              <div className="space-y-3 max-h-[640px] overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-[680px] overflow-y-auto pr-1">
                 {displayChanges.map((change) => {
                   const placeData = change.new_data || change.old_data || {};
                   const isSelected = selectedChangeId === change.id;
@@ -619,6 +642,7 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
                     ? eventDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
                     : 'Recent';
                   const sigScoreDecimal = ((change.significance_score || 80) / 10).toFixed(1);
+                  const imageUrl = placeData.metadata?.image_url;
 
                   return (
                     <div
@@ -630,11 +654,26 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
                           : 'bg-zinc-950 border-zinc-800/80 hover:border-zinc-700'
                       }`}
                     >
+                      {/* Thumbnail Image if available */}
+                      {imageUrl && (
+                        <div className="mb-3 rounded-lg overflow-hidden border border-zinc-800/80 h-32 w-full bg-black relative">
+                          <img
+                            src={imageUrl}
+                            alt={placeData.name || change.title}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          <span className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md text-[9px] text-zinc-300 font-mono border border-zinc-700">
+                            GROUND VISUAL
+                          </span>
+                        </div>
+                      )}
+
                       {/* Badge Row */}
                       <div className="flex items-center justify-between gap-2 mb-2 font-mono">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           {change.change_type === 'business_opened' && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-white text-black tracking-wider">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-emerald-400 text-black tracking-wider">
                               BUSINESS_OPENED
                             </span>
                           )}
@@ -644,18 +683,24 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
                             </span>
                           )}
                           {change.change_type === 'business_removed' && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-zinc-900 text-zinc-300 border border-zinc-700 tracking-wider">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-rose-950 text-rose-300 border border-rose-800 tracking-wider">
                               BUSINESS_REMOVED
                             </span>
                           )}
                           {change.change_type === 'business_modified' && (
-                            <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-zinc-900 text-zinc-200 border border-zinc-700 tracking-wider">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-950 text-amber-300 border border-amber-800 tracking-wider">
                               BUSINESS_MODIFIED
                             </span>
                           )}
                           <span className="px-1.5 py-0.5 bg-zinc-900 text-zinc-400 text-[10px] rounded border border-zinc-800 uppercase">
                             {placeData.category ? placeData.category.slice(0, 12) : 'LOCAL'}
                           </span>
+                          {change.verification_status === 'confirmed' && (
+                            <span className="px-1.5 py-0.5 bg-emerald-950 text-emerald-400 text-[10px] rounded border border-emerald-800 font-bold flex items-center gap-0.5">
+                              <CheckCircle2 className="w-3 h-3" />
+                              <span>VERIFIED</span>
+                            </span>
+                          )}
                         </div>
 
                         <span className="text-[10px] text-zinc-500 font-mono">
@@ -676,11 +721,25 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
                         </p>
                       )}
 
-                      {/* Card Footer */}
+                      {/* Card Footer Actions */}
                       <div className="mt-4 pt-3 border-t border-zinc-800/80 flex items-center justify-between text-xs font-mono">
-                        <div className="text-[11px] text-zinc-400">
-                          <span className="text-zinc-600">SIG_SCORE </span>
-                          <strong className="text-white font-bold">{sigScoreDecimal} / 10</strong>
+                        <div className="flex items-center gap-3">
+                          <div className="text-[11px] text-zinc-400">
+                            <span className="text-zinc-600">SIG_SCORE </span>
+                            <strong className="text-white font-bold">{sigScoreDecimal} / 10</strong>
+                          </div>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setVerifyingChange(change);
+                            }}
+                            className="btn-interactive px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-[10px] text-zinc-300 hover:text-white flex items-center gap-1 cursor-pointer"
+                            title="Verify ground truth"
+                          >
+                            <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                            <span>Verify</span>
+                          </button>
                         </div>
 
                         <Link
@@ -733,6 +792,14 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
         demographics={demographics}
         vitality={vitality}
         changes={displayChanges}
+      />
+
+      {/* GROUND TRUTH VERIFICATION MODAL */}
+      <GroundVerifyModal
+        isOpen={Boolean(verifyingChange)}
+        onClose={() => setVerifyingChange(null)}
+        change={verifyingChange}
+        onVerified={handleVerifiedChange}
       />
 
     </div>
