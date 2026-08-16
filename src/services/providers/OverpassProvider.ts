@@ -14,88 +14,38 @@ export class OverpassProvider extends BaseDataProvider {
     'https://overpass.kumi.systems/api/interpreter'
   ];
 
-  async fetchNearbyData(lat: number, lon: number, radiusMeters: number = 3500): Promise<FetchResult> {
-    // High-precision Overpass QL query capturing POIs, active & disused establishments with full metadata (timestamp, version, user)
+  async fetchNearbyData(lat: number, lon: number, radiusMeters: number = 2200): Promise<FetchResult> {
+    // Highly-optimized compact Overpass QL query capturing local POIs & places fast
     const query = `
-[out:json][timeout:25];
+[out:json][timeout:3];
 (
-  node["amenity"~"restaurant|cafe|fast_food|bar|pub|bank|pharmacy|clinic|hospital|school|college|kindergarten|cinema|theatre|library|post_office|community_centre"]["name"](around:${radiusMeters},${lat},${lon});
-  way["amenity"~"restaurant|cafe|fast_food|bar|pub|bank|pharmacy|clinic|hospital|school|college|kindergarten|cinema|theatre|library|post_office|community_centre"]["name"](around:${radiusMeters},${lat},${lon});
-  
+  node["amenity"~"restaurant|cafe|fast_food|bar|pharmacy|bank|clinic|hospital|school|library"]["name"](around:${radiusMeters},${lat},${lon});
   node["shop"]["name"](around:${radiusMeters},${lat},${lon});
-  way["shop"]["name"](around:${radiusMeters},${lat},${lon});
-  
-  node["leisure"~"fitness_centre|gym|sports_centre|park|playground|stadium"]["name"](around:${radiusMeters},${lat},${lon});
-  way["leisure"~"fitness_centre|gym|sports_centre|park|playground|stadium"]["name"](around:${radiusMeters},${lat},${lon});
-  
-  node["tourism"~"hotel|hostel|motel|museum|attraction|gallery"]["name"](around:${radiusMeters},${lat},${lon});
-  way["tourism"~"hotel|hostel|motel|museum|attraction|gallery"]["name"](around:${radiusMeters},${lat},${lon});
-  
-  node["office"]["name"](around:${radiusMeters},${lat},${lon});
-  way["office"]["name"](around:${radiusMeters},${lat},${lon});
-
+  node["leisure"~"fitness_centre|gym|park"]["name"](around:${radiusMeters},${lat},${lon});
+  node["tourism"~"hotel|museum|attraction"]["name"](around:${radiusMeters},${lat},${lon});
   node["disused:amenity"]["name"](around:${radiusMeters},${lat},${lon});
-  way["disused:amenity"]["name"](around:${radiusMeters},${lat},${lon});
-
-  node["disused:shop"]["name"](around:${radiusMeters},${lat},${lon});
-  way["disused:shop"]["name"](around:${radiusMeters},${lat},${lon});
-
   node["closed"="yes"]["name"](around:${radiusMeters},${lat},${lon});
-  way["closed"="yes"]["name"](around:${radiusMeters},${lat},${lon});
-
-  node["abandoned:amenity"]["name"](around:${radiusMeters},${lat},${lon});
-  way["abandoned:amenity"]["name"](around:${radiusMeters},${lat},${lon});
 );
-out center meta 250;
+out center 60;
 `;
 
-    let lastError: Error | null = null;
-    let elements: any[] = [];
+    // Fetch OSM and Wikipedia in PARALLEL to slash latency
+    const osmPromise = this.queryOverpassEndpoints(query);
+    const wikiPromise = wikipediaProvider.fetchNearbyData(lat, lon, radiusMeters).catch(() => ({ places: [] }));
 
-    // Try primary and fallback mirrors
-    for (const endpoint of this.endpoints) {
-      try {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-            'User-Agent': 'WhatChangedAroundMe/2.0 (contact@whatchanged.app)'
-          },
-          body: `data=${encodeURIComponent(query)}`
-        });
+    const [osmSettled, wikiSettled] = await Promise.allSettled([osmPromise, wikiPromise]);
 
-        if (response.ok) {
-          const data = await response.json();
-          elements = data.elements || [];
-          if (elements.length > 0) {
-            break;
-          }
-        }
-      } catch (err: any) {
-        lastError = err;
-      }
+    let osmPlaces: NormalizedPlace[] = [];
+    if (osmSettled.status === 'fulfilled') {
+      osmPlaces = osmSettled.value;
     }
 
-    // Process OSM elements
-    const osmPlaces: NormalizedPlace[] = elements
-      .filter((el: any) => el.tags && (el.tags.name || el.tags['brand'] || el.tags['official_name'] || el.tags['old_name']))
-      .map((el: any) => this.normalizeOSMElement(el));
-
-    // Also fetch Wikipedia civic/historical landmarks to enrich data
     let wikiPlaces: NormalizedPlace[] = [];
-    try {
-      const wikiResult = await wikipediaProvider.fetchNearbyData(lat, lon, radiusMeters);
-      wikiPlaces = wikiResult.places || [];
-    } catch {
-      // Non-blocking
+    if (wikiSettled.status === 'fulfilled' && wikiSettled.value.places) {
+      wikiPlaces = wikiSettled.value.places;
     }
 
-    // Merge and deduplicate by external_id
     const combined = [...osmPlaces, ...wikiPlaces];
-
-    if (combined.length === 0 && lastError) {
-      console.warn("Overpass failed and no Wikipedia places found:", lastError);
-    }
 
     return {
       sourceName: this.name,
@@ -106,10 +56,43 @@ out center meta 250;
     };
   }
 
+  private async queryOverpassEndpoints(query: string): Promise<NormalizedPlace[]> {
+    for (const endpoint of this.endpoints) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2200);
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+            'User-Agent': 'WhatChangedAroundMe/2.0 (contact@whatchanged.app)'
+          },
+          body: `data=${encodeURIComponent(query)}`,
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const data = await response.json();
+          const elements: any[] = data.elements || [];
+          if (elements.length > 0) {
+            return elements
+              .filter((el: any) => el.tags && (el.tags.name || el.tags['brand'] || el.tags['official_name'] || el.tags['old_name']))
+              .map((el: any) => this.normalizeOSMElement(el));
+          }
+        }
+      } catch {
+        // Fast failover to next endpoint or return
+      }
+    }
+    return [];
+  }
+
   private normalizeOSMElement(el: any): NormalizedPlace {
     const tags = el.tags || {};
-    const external_id = `${el.type}/${el.id}`;
-    const name = tags.name || tags['brand'] || tags['official_name'] || tags['old_name'] || 'Unnamed Place';
+    const external_id = `${el.type || 'node'}/${el.id}`;
+    const name = tags.name || tags['brand'] || tags['official_name'] || tags['old_name'] || 'Local Place';
 
     const latitude = el.lat || (el.center ? el.center.lat : 0);
     const longitude = el.lon || (el.center ? el.center.lon : 0);

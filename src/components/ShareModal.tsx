@@ -32,7 +32,6 @@ export const ShareModal: React.FC<Props> = ({
   if (!isOpen) return null;
 
   const openedCount = changes.filter(c => c.change_type === 'business_opened').length;
-  const recentChanges = changes.slice(0, 3);
   const medianIncomeStr = demographics?.median_income 
     ? `$${Number(demographics.median_income).toLocaleString()}` 
     : '$142,000';

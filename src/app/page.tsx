@@ -80,6 +80,7 @@ const FAQS = [
 
 export default function Homepage() {
   const [zipInput, setZipInput] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [compareZipA, setCompareZipA] = useState('10001');
   const [compareZipB, setCompareZipB] = useState('90210');
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -91,6 +92,7 @@ export default function Homepage() {
     e.preventDefault();
     const cleanZip = zipInput.trim();
     if (isValidUSZip(cleanZip)) {
+      setIsSubmitting(true);
       router.push(`/area/${cleanZip}`);
     }
   };
@@ -147,9 +149,10 @@ export default function Homepage() {
               </div>
               <button
                 type="submit"
-                className="btn-interactive w-full sm:w-auto px-7 py-3.5 bg-white hover:bg-zinc-200 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+                disabled={isSubmitting}
+                className="btn-interactive w-full sm:w-auto px-7 py-3.5 bg-white hover:bg-zinc-200 text-black font-extrabold text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 shrink-0 cursor-pointer disabled:opacity-75"
               >
-                <span>Run Live Scan</span>
+                <span>{isSubmitting ? 'Scanning...' : 'Run Live Scan'}</span>
                 <ArrowRight className="w-4 h-4 text-black" />
               </button>
             </div>

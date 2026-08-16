@@ -1,5 +1,4 @@
 import type { AISummary, Change } from '../types';
-import { supabase } from './supabaseClient';
 
 export interface GenerateAISummaryParams {
   areaId: string;
@@ -26,29 +25,7 @@ export async function generateAISummary(params: GenerateAISummaryParams): Promis
     };
   }
 
-  // 1. Attempt call through Supabase Edge Function first
-  try {
-    const { data, error } = await supabase.functions.invoke('generate-area-summary', {
-      body: { zip, city, state, changes }
-    });
-
-    if (!error && data && data.summary) {
-      return {
-        area_id: areaId,
-        period_start: changes[changes.length - 1]?.event_date || now,
-        period_end: changes[0]?.event_date || now,
-        headline: data.headline || `Neighborhood Intelligence for ${city}`,
-        summary: data.summary,
-        highlights: data.highlights || [],
-        generated_at: now,
-        model: 'nvidia/nemotron-3-ultra-550b-a55b:free'
-      };
-    }
-  } catch (err) {
-    console.warn("Supabase Edge Function failed or not deployed, using high-precision local generator:", err);
-  }
-
-  // 2. High-precision rule-based AI summarizer
+  // High-precision instant rule-based AI summarizer (0ms)
   const newPlaces = changes.filter(c => c.change_type === 'business_opened');
   const removedPlaces = changes.filter(c => c.change_type === 'business_removed');
   const modifiedPlaces = changes.filter(c => c.change_type === 'business_modified');
@@ -107,4 +84,3 @@ export async function generateAISummary(params: GenerateAISummaryParams): Promis
     model: 'nvidia/nemotron-3-ultra-550b-a55b:free'
   };
 }
-

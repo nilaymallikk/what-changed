@@ -1,4 +1,4 @@
-# ⚡ What Changed Around Me?
+# What Changed Around Me?
 
 > **Hyperlocal Spatial Intelligence & 10-Year US Census Shift Tracker for Any American Neighborhood.**
 
@@ -10,24 +10,24 @@
 
 ---
 
-## 🏛️ System Architecture
+## System Architecture
 
 ![System Architecture](architecture.png)
 
 ---
 
-## 🌟 Core Features
+## Core Features
 
-- **📍 Instant ZIP Code Intelligence**: Resolve any 5-digit US ZIP code to extract live commercial changes, physical renovations, and unlisted places.
-- **📊 Official US Census Bureau Demographics**: Real-time ZCTA metrics covering Median Household Income, Population Growth, Housing Occupancy, Median Home Values, and 10-Year historical baselines.
-- **⚡ Neighborhood Vitality Index (0–100)**: Multi-factor vitality algorithm scoring income trajectories (35%), commercial opening velocity (30%), housing occupancy (20%), and civic density (15%).
-- **⚖️ Side-by-Side Area Comparison (`/compare`)**: Direct head-to-head benchmarking between any two US neighborhoods with metric scorecards and dynamic SEO cards.
-- **⏳ Map Time Machine**: Scrub historical eras (`2024–Present`, `2021–2023`, `2018–2020`, `All History`) with animated vector map pins.
-- **📢 1-Click Shareable Infographics**: Generate high-resolution 1200x630 dark-theme social PNGs or post directly to X with pre-formatted stats.
+- **Instant ZIP Code Intelligence**: Resolve any 5-digit US ZIP code to extract live commercial changes, physical renovations, and unlisted places.
+- **Official US Census Bureau Demographics**: Real-time ZCTA metrics covering Median Household Income, Population Growth, Housing Occupancy, Median Home Values, and 10-Year historical baselines.
+- **Neighborhood Vitality Index (0–100)**: Multi-factor vitality algorithm scoring income trajectories (35%), commercial opening velocity (30%), housing occupancy (20%), and civic density (15%).
+- **Side-by-Side Area Comparison (`/compare`)**: Direct head-to-head benchmarking between any two US neighborhoods with metric scorecards and dynamic SEO cards.
+- **Map Time Machine**: Scrub historical eras (`2024–Present`, `2021–2023`, `2018–2020`, `All History`) with animated vector map pins.
+- **1-Click Shareable Infographics**: Generate high-resolution 1200x630 dark-theme social PNGs or post directly to X with pre-formatted stats.
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 | Layer | Technology |
 | :--- | :--- |
@@ -39,7 +39,7 @@
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Clone & Install
 ```bash
@@ -64,7 +64,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 📦 Production Build & Quality Check
+## Production Build & Quality Check
 
 ```bash
 # Lint codebase
@@ -79,10 +79,10 @@ npm run start
 
 ---
 
-## 👤 Author
+## Author
 
 Built with precision by **[Nilay Mallik](https://x.com/nilaymallikX)**.
 
-## 📄 License
+## License
 
 Open-source under the [MIT License](LICENSE).

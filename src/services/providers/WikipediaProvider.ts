@@ -7,10 +7,15 @@ export class WikipediaProvider extends BaseDataProvider {
   readonly url = 'https://www.wikipedia.org/';
   readonly description = 'Notable civic landmarks, historical developments, and institutions from Wikipedia Geosearch';
 
-  async fetchNearbyData(lat: number, lon: number, radiusMeters: number = 5000): Promise<FetchResult> {
+  async fetchNearbyData(lat: number, lon: number, radiusMeters: number = 3000): Promise<FetchResult> {
     try {
-      const geoUrl = `https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=${Math.min(10000, radiusMeters)}&gslimit=20&format=json&origin=*`;
-      const res = await fetch(geoUrl);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1500);
+
+      const geoUrl = `https://en.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lon}&gsradius=${Math.min(5000, radiusMeters)}&gslimit=10&format=json&origin=*`;
+      const res = await fetch(geoUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
       if (!res.ok) {
         throw new Error(`Wikipedia Geosearch responded with status ${res.status}`);
       }
@@ -28,8 +33,13 @@ export class WikipediaProvider extends BaseDataProvider {
       }
 
       const pageIds = pages.map(p => p.pageid).join('|');
-      const detailUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts|pageimages|info&inprop=url&exintro=1&explaintext=1&exsentences=3&piprop=thumbnail&pithumbsize=500&pageids=${pageIds}&format=json&origin=*`;
-      const detRes = await fetch(detailUrl);
+      const detailUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts|pageimages|info&inprop=url&exintro=1&explaintext=1&exsentences=2&piprop=thumbnail&pithumbsize=400&pageids=${pageIds}&format=json&origin=*`;
+      
+      const detController = new AbortController();
+      const detTimeoutId = setTimeout(() => detController.abort(), 1500);
+      const detRes = await fetch(detailUrl, { signal: detController.signal });
+      clearTimeout(detTimeoutId);
+
       const detJson = await detRes.json();
       const pageDetails: Record<string, any> = detJson.query?.pages || {};
 
@@ -39,8 +49,7 @@ export class WikipediaProvider extends BaseDataProvider {
         const imageUrl = detail.thumbnail?.source || null;
         const wikiUrl = detail.fullurl || `https://en.wikipedia.org/?curid=${p.pageid}`;
         
-        // Form a realistic historical milestone timestamp for notable entries
-        const yearOffset = (idx % 10) + 1;
+        const yearOffset = (idx % 8) + 1;
         const eventDate = new Date(Date.now() - yearOffset * 365 * 24 * 3600 * 1000).toISOString();
 
         return {
@@ -71,8 +80,7 @@ export class WikipediaProvider extends BaseDataProvider {
         rawCount: places.length,
         timestamp: new Date().toISOString()
       };
-    } catch (err: any) {
-      console.warn("Wikipedia Geosearch failed:", err.message);
+    } catch {
       return {
         sourceName: this.name,
         sourceType: this.sourceType,

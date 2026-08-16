@@ -34,9 +34,6 @@ export const CompareClient: React.FC<Props> = ({ slug }) => {
   const [censusA, setCensusA] = useState<CensusDemographics | null>(null);
   const [censusB, setCensusB] = useState<CensusDemographics | null>(null);
 
-  const [changesA, setChangesA] = useState<Change[]>([]);
-  const [changesB, setChangesB] = useState<Change[]>([]);
-
   const [vitalityA, setVitalityA] = useState<VitalityScoreResult | null>(null);
   const [vitalityB, setVitalityB] = useState<VitalityScoreResult | null>(null);
 
@@ -112,9 +109,6 @@ export const CompareClient: React.FC<Props> = ({ slug }) => {
               created_at: new Date().toISOString()
             }))
           : getAreaFallbackData(gB, cB).changes;
-
-        setChangesA(changesListA);
-        setChangesB(changesListB);
 
         const vA = calculateVitalityScore(cA, changesListA);
         const vB = calculateVitalityScore(cB, changesListB);
