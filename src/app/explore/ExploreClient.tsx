@@ -48,6 +48,15 @@ const METRO_REGIONS: MetroRegion[] = [
     ]
   },
   {
+    region: 'Deep South & Mississippi Delta',
+    cities: [
+      { zip: '38863', city: 'Pontotoc', state: 'MS', neighborhood: 'Downtown & Town Square', highlights: 'Courthouse square retail, artisanal dining, civic upgrades' },
+      { zip: '38668', city: 'Senatobia', state: 'MS', neighborhood: 'Historic District & Main St', highlights: 'Tate County heritage sites, local dining, school network' },
+      { zip: '38655', city: 'Oxford', state: 'MS', neighborhood: 'The Square / Ole Miss', highlights: 'Literary landmarks, boutique hotels, college corridor' },
+      { zip: '38801', city: 'Tupelo', state: 'MS', neighborhood: 'Downtown & Fairpark District', highlights: 'Cultural heritage, medical centers, commercial growth' }
+    ]
+  },
+  {
     region: 'Midwest & Great Lakes',
     cities: [
       { zip: '60611', city: 'Chicago', state: 'IL', neighborhood: 'Magnificent Mile / Streeterville', highlights: 'Hospitality venues, lakefront amenities, retail updates' },

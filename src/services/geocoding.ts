@@ -7,6 +7,11 @@ export function isValidUSZip(zip: string): boolean {
 
 // Known coordinates for major US ZIPs to ensure 100% instant reliability
 const KNOWN_ZIPS: Record<string, GeoLocation> = {
+  '38863': { zip: '38863', city: 'Pontotoc', state: 'MS', latitude: 34.2479, longitude: -89.0067 },
+  '38668': { zip: '38668', city: 'Senatobia', state: 'MS', latitude: 34.6176, longitude: -89.9654 },
+  '38655': { zip: '38655', city: 'Oxford', state: 'MS', latitude: 34.3665, longitude: -89.5192 },
+  '38801': { zip: '38801', city: 'Tupelo', state: 'MS', latitude: 34.2576, longitude: -88.7034 },
+  '39201': { zip: '39201', city: 'Jackson', state: 'MS', latitude: 32.2988, longitude: -90.1848 },
   '90210': { zip: '90210', city: 'Beverly Hills', state: 'CA', latitude: 34.0736, longitude: -118.4004 },
   '10001': { zip: '10001', city: 'New York', state: 'NY', latitude: 40.7501, longitude: -73.9996 },
   '10003': { zip: '10003', city: 'New York', state: 'NY', latitude: 40.7315, longitude: -73.9892 },
@@ -32,6 +37,9 @@ const KNOWN_ZIPS: Record<string, GeoLocation> = {
 
 // 3-digit US Postal Prefix Mapping for instant regional resolution
 const PREFIX_REGIONS: Record<string, { city: string; state: string; lat: number; lon: number }> = {
+  '386': { city: 'Senatobia / North MS', state: 'MS', lat: 34.6176, lon: -89.9654 },
+  '388': { city: 'Pontotoc / Tupelo', state: 'MS', lat: 34.2479, lon: -89.0067 },
+  '392': { city: 'Jackson', state: 'MS', lat: 32.2988, lon: -90.1848 },
   '010': { city: 'Springfield', state: 'MA', lat: 42.1015, lon: -72.5898 },
   '021': { city: 'Boston', state: 'MA', lat: 42.3601, lon: -71.0589 },
   '022': { city: 'Boston', state: 'MA', lat: 42.3505, lon: -71.0763 },
