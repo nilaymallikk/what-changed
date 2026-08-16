@@ -50,13 +50,9 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
     setError(null);
 
     try {
-      // 1. Instant resolution of location and demographic baseline (< 10ms)
-      const [geoLoc, censusData] = await Promise.all([
-        defaultGeocodingProvider.resolveZip(zipCode),
-        censusService.getDemographics(zipCode)
-      ]);
+      // 1. Resolve exact location coordinates & city/state (< 10ms)
+      const geoLoc = await defaultGeocodingProvider.resolveZip(zipCode);
       setLocation(geoLoc);
-      setDemographics(censusData);
 
       const areaId = `area_${geoLoc.zip}`;
       const sourceId = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
@@ -77,68 +73,66 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
       const storedChanges = localDB.getChanges(areaId);
       const storedSummary = localDB.getAISummary(areaId);
 
-      // If already saved in localStorage and not forced refresh, show instantly
+      // Instant optimistic paint with stored or baseline data
       if (!forceRefresh && storedChanges.length >= 3 && storedSummary) {
         setChanges(storedChanges);
         setAISummary(storedSummary);
-        setLoading(false);
-        return;
+      } else {
+        const initialFallback = getAreaFallbackData(geoLoc, null);
+        setChanges(storedChanges.length > 0 ? storedChanges : initialFallback.changes);
+        setAISummary(storedSummary || initialFallback.aiSummary);
       }
-
-      // Initial instant baseline render so dashboard is visible immediately (0ms wait)
-      const initialFallback = getAreaFallbackData(geoLoc, censusData);
-      setChanges(storedChanges.length > 0 ? storedChanges : initialFallback.changes);
-      setAISummary(storedSummary || initialFallback.aiSummary);
       setLoading(false);
 
-      // 2. High-speed spatial scan in background with quick timeout
-      try {
-        const fetchResult = await overpassProvider.fetchNearbyData(geoLoc.latitude, geoLoc.longitude);
+      // 2. Fetch official US Census ACS data & live spatial nodes in parallel
+      const [censusData, fetchResult] = await Promise.all([
+        censusService.getDemographics(zipCode, geoLoc.state),
+        overpassProvider.fetchNearbyData(geoLoc.latitude, geoLoc.longitude).catch(() => ({ places: [] }))
+      ]);
 
-        if (fetchResult.places && fetchResult.places.length > 0) {
-          const existingSnapshots = localDB.getSnapshots(areaId);
-          let previousPlaces: any[] = [];
-          if (existingSnapshots.length > 0) {
-            const lastSnap = existingSnapshots[existingSnapshots.length - 1];
-            previousPlaces = lastSnap.metadata?.places || [];
-          }
+      setDemographics(censusData);
 
-          const detectedChanges = detectPlaceChanges(areaId, sourceId, previousPlaces, fetchResult.places);
-
-          const newSnapshot = {
-            id: `snap_${Date.now()}`,
-            area_id: areaId,
-            source_id: sourceId,
-            captured_at: new Date().toISOString(),
-            status: 'completed' as const,
-            record_count: fetchResult.places.length,
-            metadata: { places: fetchResult.places },
-            created_at: new Date().toISOString()
-          };
-          localDB.saveSnapshot(newSnapshot);
-          localDB.saveChanges(detectedChanges);
-
-          const newAISummary = await generateAISummary({
-            areaId,
-            zip: geoLoc.zip,
-            city: geoLoc.city,
-            state: geoLoc.state,
-            changes: detectedChanges
-          });
-          localDB.saveAISummary(newAISummary);
-
-          setChanges(detectedChanges);
-          setAISummary(newAISummary);
-        } else if (!storedSummary) {
-          localDB.saveChanges(initialFallback.changes);
-          localDB.saveAISummary(initialFallback.aiSummary);
+      // Process real places if found
+      if (fetchResult.places && fetchResult.places.length > 0) {
+        const existingSnapshots = localDB.getSnapshots(areaId);
+        let previousPlaces: any[] = [];
+        if (existingSnapshots.length > 0) {
+          const lastSnap = existingSnapshots[existingSnapshots.length - 1];
+          previousPlaces = lastSnap.metadata?.places || [];
         }
-      } catch {
-        // Spatial scan completed with baseline
-        if (!storedSummary) {
-          localDB.saveChanges(initialFallback.changes);
-          localDB.saveAISummary(initialFallback.aiSummary);
-        }
+
+        const detectedChanges = detectPlaceChanges(areaId, sourceId, previousPlaces, fetchResult.places);
+
+        const newSnapshot = {
+          id: `snap_${Date.now()}`,
+          area_id: areaId,
+          source_id: sourceId,
+          captured_at: new Date().toISOString(),
+          status: 'completed' as const,
+          record_count: fetchResult.places.length,
+          metadata: { places: fetchResult.places },
+          created_at: new Date().toISOString()
+        };
+        localDB.saveSnapshot(newSnapshot);
+        localDB.saveChanges(detectedChanges);
+
+        const newAISummary = await generateAISummary({
+          areaId,
+          zip: geoLoc.zip,
+          city: geoLoc.city,
+          state: geoLoc.state,
+          changes: detectedChanges
+        });
+        localDB.saveAISummary(newAISummary);
+
+        setChanges(detectedChanges);
+        setAISummary(newAISummary);
+      } else if (!storedSummary) {
+        const enrichedFallback = getAreaFallbackData(geoLoc, censusData);
+        localDB.saveChanges(enrichedFallback.changes);
+        localDB.saveAISummary(enrichedFallback.aiSummary);
+        setChanges(enrichedFallback.changes);
+        setAISummary(enrichedFallback.aiSummary);
       }
 
     } catch (err: any) {
