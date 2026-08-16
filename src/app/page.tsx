@@ -109,8 +109,26 @@ export default function Homepage() {
   const currentItems = SIMULATOR_DATA[activeCategory] || SIMULATOR_DATA.all;
   const activeBlip = currentItems.find(item => item.id === selectedBlipId) || currentItems[0];
 
+  const homepageFaqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: FAQS.map(faq => ({
+      '@type': 'Question',
+      name: faq.q,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: faq.a
+      }
+    }))
+  };
+
   return (
     <div className="min-h-screen bg-black text-white selection:bg-white selection:text-black overflow-x-hidden">
+      {/* Homepage FAQ Schema.org JSON-LD */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homepageFaqSchema) }}
+      />
       
       {/* HERO SECTION */}
       <section className="relative pt-16 pb-14 sm:pt-24 sm:pb-20 px-4 sm:px-6 lg:px-8 border-b border-zinc-800/80">

@@ -5,22 +5,22 @@ import { Header } from '../components/Header';
 export const metadata: Metadata = {
   metadataBase: new URL('https://whatchangedaround.me'),
   title: {
-    default: 'What Changed Around Me — Hyperlocal Neighborhood Intelligence',
+    default: 'What Changed Around Me — Real-Time Neighborhood Spatial Intelligence',
     template: '%s | What Changed Around Me',
   },
   description:
-    'Track physical, commercial, and demographic changes across any US neighborhood. Discover new store openings, unlisted places, and 10-year Census shifts using 100% open public data.',
+    'Track physical, commercial, and demographic changes across any US neighborhood. Discover new store openings, business filings, 8-metric US Census shifts, and 5-axis vitality scores.',
   keywords: [
-    'neighborhood changes',
     'what changed around me',
-    'new businesses opened',
-    'hyperlocal intelligence',
-    'census demographics',
-    'ZIP code lookup',
-    'neighborhood comparison',
-    'spatial change detection',
-    'local economy tracker',
-    'vitality index'
+    'neighborhood changes',
+    'new businesses opened near me',
+    'hyperlocal spatial intelligence',
+    'US census demographics by zip',
+    'median household income by zip',
+    'neighborhood vitality index',
+    'compare zip codes side by side',
+    'who is moving to my area',
+    'commercial permits and store openings'
   ],
   authors: [{ name: 'Nilay Mallik', url: 'https://x.com/nilaymallikX' }],
   creator: 'Nilay Mallik',
@@ -33,21 +33,21 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: 'https://whatchangedaround.me',
     siteName: 'What Changed Around Me',
-    title: 'What Changed Around Me — Hyperlocal Neighborhood Intelligence',
+    title: 'What Changed Around Me — Real-Time Neighborhood Spatial Intelligence',
     description:
-      'Track physical, commercial, and demographic changes across any US neighborhood using 100% open public data and spatial intelligence.',
+      'Track physical, commercial, and demographic changes across any US neighborhood using 100% open public data, US Census ACS metrics, and live spatial intelligence.',
     images: [
       {
         url: '/architecture.png',
         width: 1200,
         height: 630,
-        alt: 'What Changed Around Me Architecture & Intelligence Suite',
+        alt: 'What Changed Around Me Spatial Intelligence Platform',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'What Changed Around Me — Hyperlocal Neighborhood Intelligence',
+    title: 'What Changed Around Me — Real-Time Neighborhood Spatial Intelligence',
     description: 'Track physical, commercial, and demographic changes across any US neighborhood.',
     creator: '@nilaymallikX',
     images: ['/architecture.png'],
@@ -83,7 +83,7 @@ const jsonLd = {
   applicationCategory: 'Geographic, Real Estate, Demographics Application',
   operatingSystem: 'Any',
   description:
-    'Track physical, commercial, and demographic changes across any US neighborhood using official US Census Bureau datasets and spatial intelligence.',
+    'Real-time neighborhood spatial intelligence platform tracking business openings, corporate filings, official US Census Bureau demographics, and neighborhood vitality indices.',
   author: {
     '@type': 'Person',
     name: 'Nilay Mallik',
@@ -94,6 +94,17 @@ const jsonLd = {
     name: 'Nilay Mallik',
     url: 'https://x.com/nilaymallikX',
   },
+  featureList: [
+    'Real-Time Spatial Radar & Store Openings',
+    '8-Metric Official US Census ACS 5-Year Demographics',
+    '5-Axis Neighborhood Vitality Index Polygon Chart',
+    'Interactive Before/After Time Machine & Split Diff Lens',
+    'Who is Moving In? Migration Inflow Corridor Analytics',
+    '60-Second AI Neural Audio Briefings',
+    'Ground Truth Community Verification',
+    'Head-to-Head ZIP Code Benchmark Comparison',
+    'Nationwide 50-State Metro Directory'
+  ],
   offers: {
     '@type': 'Offer',
     price: '0',
