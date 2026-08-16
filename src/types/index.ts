@@ -15,7 +15,6 @@ export interface NormalizedPlace {
 export type DateFilter = 'all' | '30d' | '6m' | '1y' | '5y' | '10y';
 
 export interface Area {
-
   id: string;
   zip_code: string;
   city: string;
@@ -37,7 +36,7 @@ export interface Source {
   created_at: string;
 }
 
-export type ChangeType = 'business_opened' | 'business_removed' | 'business_modified';
+export type ChangeType = 'business_opened' | 'business_removed' | 'business_modified' | 'business_filing';
 export type VerificationStatus = 'detected' | 'reported' | 'confirmed';
 
 export interface Place {
@@ -151,8 +150,11 @@ export interface DemographicHistory {
   households: number;
   median_income: number;
   housing_units: number;
-  median_age: number;
   median_home_value: number;
+  median_rent: number;
+  poverty_rate: number;
+  median_age: number;
+  bachelors_or_higher_pct: number;
 }
 
 export interface CensusDemographics {
@@ -162,13 +164,14 @@ export interface CensusDemographics {
   households: number;
   median_income: number;
   housing_units: number;
-  median_age: number;
   median_home_value: number;
+  median_rent: number;
+  poverty_rate: number;
+  median_age: number;
+  bachelors_or_higher_pct: number;
   history_1y?: DemographicHistory;
   history_5y?: DemographicHistory;
   history_10y?: DemographicHistory;
   updated_at?: string;
   source?: string;
 }
-
-

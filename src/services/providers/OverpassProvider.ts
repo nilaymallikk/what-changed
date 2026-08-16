@@ -1,12 +1,13 @@
 import { BaseDataProvider, type FetchResult, type NormalizedPlace } from './BaseProvider';
 import { wikipediaProvider } from './WikipediaProvider';
+import { businessFilingsProvider } from './BusinessFilingsProvider';
 
 export class OverpassProvider extends BaseDataProvider {
   readonly id = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
-  readonly name = 'OpenStreetMap';
+  readonly name = 'OpenStreetMap & Spatial Network';
   readonly sourceType = 'osm_overpass';
-  readonly url = 'https://www.openstreetmap.org/';
-  readonly description = 'Community-driven map data queried via Overpass API';
+  readonly url = 'https://overpass-api.de/api/interpreter';
+  readonly description = 'Community map nodes from OSM Overpass combined with Wikipedia Geosearch and Business Filings';
 
   private endpoints = [
     'https://overpass-api.de/api/interpreter',
@@ -14,8 +15,7 @@ export class OverpassProvider extends BaseDataProvider {
     'https://overpass.kumi.systems/api/interpreter'
   ];
 
-  async fetchNearbyData(lat: number, lon: number, radiusMeters: number = 2200): Promise<FetchResult> {
-    // Highly-optimized compact Overpass QL query capturing local POIs & places fast
+  async fetchNearbyData(lat: number, lon: number, radiusMeters: number = 3000): Promise<FetchResult> {
     const query = `
 [out:json][timeout:3];
 (
@@ -26,14 +26,19 @@ export class OverpassProvider extends BaseDataProvider {
   node["disused:amenity"]["name"](around:${radiusMeters},${lat},${lon});
   node["closed"="yes"]["name"](around:${radiusMeters},${lat},${lon});
 );
-out center 60;
+out center 50;
 `;
 
-    // Fetch OSM and Wikipedia in PARALLEL to slash latency
+    // Fetch OSM Overpass, Wikipedia Geosearch, and Business Filings concurrently in parallel
     const osmPromise = this.queryOverpassEndpoints(query);
     const wikiPromise = wikipediaProvider.fetchNearbyData(lat, lon, radiusMeters).catch(() => ({ places: [] }));
+    const filingsPromise = businessFilingsProvider.fetchNearbyData(lat, lon, radiusMeters).catch(() => ({ places: [] }));
 
-    const [osmSettled, wikiSettled] = await Promise.allSettled([osmPromise, wikiPromise]);
+    const [osmSettled, wikiSettled, filingsSettled] = await Promise.allSettled([
+      osmPromise,
+      wikiPromise,
+      filingsPromise
+    ]);
 
     let osmPlaces: NormalizedPlace[] = [];
     if (osmSettled.status === 'fulfilled') {
@@ -45,7 +50,12 @@ out center 60;
       wikiPlaces = wikiSettled.value.places;
     }
 
-    const combined = [...osmPlaces, ...wikiPlaces];
+    let filingPlaces: NormalizedPlace[] = [];
+    if (filingsSettled.status === 'fulfilled' && filingsSettled.value.places) {
+      filingPlaces = filingsSettled.value.places;
+    }
+
+    const combined = [...wikiPlaces, ...osmPlaces, ...filingPlaces];
 
     return {
       sourceName: this.name,
@@ -126,7 +136,6 @@ out center 60;
       category += ' (Closed / Disused)';
     }
 
-    // Precise address extraction from OSM tags
     const num = tags['addr:housenumber'] || '';
     const street = tags['addr:street'] || tags['addr:place'] || '';
     const unit = tags['addr:unit'] ? `Suite ${tags['addr:unit']}` : '';

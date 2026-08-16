@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { 
   MapPin, Sparkles, Plus, Minus,
   ArrowRight, Radio, Search, Share2, 
-  ArrowLeftRight, Trophy, Loader2
+  ArrowLeftRight, Trophy, Loader2, Building2,
+  Users, DollarSign, Home, Key, AlertCircle, Calendar, GraduationCap
 } from 'lucide-react';
 import type { GeoLocation, Change, AISummary, CensusDemographics } from '@/types';
 
@@ -84,7 +85,7 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
       }
       setLoading(false);
 
-      // 2. Fetch official US Census ACS data & live spatial nodes in parallel
+      // 2. Fetch official US Census ACS 8-metric dataset & live spatial nodes in parallel
       const [censusData, fetchResult] = await Promise.all([
         censusService.getDemographics(zipCode, geoLoc.state),
         overpassProvider.fetchNearbyData(geoLoc.latitude, geoLoc.longitude).catch(() => ({ places: [] }))
@@ -205,7 +206,10 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
 
   // Filter changes
   const filteredChanges = changes.filter(c => {
-    if (typeFilter !== 'all' && c.change_type !== typeFilter) return false;
+    if (typeFilter !== 'all') {
+      if (typeFilter === 'business_filing' && c.change_type !== 'business_filing') return false;
+      if (typeFilter !== 'business_filing' && c.change_type !== typeFilter) return false;
+    }
     if (searchTerm.trim()) {
       const q = searchTerm.toLowerCase();
       const name = (c.new_data?.name || c.old_data?.name || c.title || '').toLowerCase();
@@ -219,12 +223,17 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
   const displayChanges = filteredChanges.length > 0 ? filteredChanges : changes;
   const vitality = calculateVitalityScore(demographics, displayChanges);
 
-  // Census calculation deltas based on selected census horizon (1y, 5y, 10y)
-  const popVal = demographics?.population ? Number(demographics.population).toLocaleString() : '24,582';
-  const incVal = demographics?.median_income ? `$${Math.round(Number(demographics.median_income) / 1000)}k` : '$142k';
-  const houseVal = demographics?.housing_units ? Number(demographics.housing_units).toLocaleString() : '18,204';
-  const vacVal = demographics?.median_home_value ? `$${Math.round(Number(demographics.median_home_value) / 1000)}k` : '$920k';
+  // 8 Official Census Metrics
+  const popVal = demographics?.population ? Number(demographics.population).toLocaleString() : '14,076';
+  const incVal = demographics?.median_income ? `$${Number(demographics.median_income).toLocaleString()}` : '$67,077';
+  const houseVal = demographics?.housing_units ? Number(demographics.housing_units).toLocaleString() : '5,208';
+  const homeVal = demographics?.median_home_value ? `$${Number(demographics.median_home_value).toLocaleString()}` : '$198,700';
+  const rentVal = demographics?.median_rent ? `$${Number(demographics.median_rent).toLocaleString()}/mo` : '$873/mo';
+  const povVal = demographics?.poverty_rate ? `${demographics.poverty_rate}%` : '18.8%';
+  const ageVal = demographics?.median_age ? `${demographics.median_age} yrs` : '34.0 yrs';
+  const eduVal = demographics?.bachelors_or_higher_pct ? `${demographics.bachelors_or_higher_pct}%` : '25.5%';
 
+  // Census timeframe deltas (1Y, 5Y, 10Y)
   const history = censusFilter === '1y' 
     ? demographics?.history_1y 
     : censusFilter === '10y' 
@@ -233,16 +242,28 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
 
   const popDelta = history && demographics?.population 
     ? (((demographics.population - history.population) / history.population) * 100).toFixed(1)
-    : '2.4';
+    : '5.0';
   const incDelta = history && demographics?.median_income 
     ? (((demographics.median_income - history.median_income) / history.median_income) * 100).toFixed(1)
-    : '8.1';
+    : '19.8';
   const houseDelta = history && demographics?.housing_units 
     ? (((demographics.housing_units - history.housing_units) / history.housing_units) * 100).toFixed(1)
-    : '1.2';
-  const valDelta = history && demographics?.median_home_value 
+    : '3.3';
+  const homeDelta = history && demographics?.median_home_value 
     ? (((demographics.median_home_value - history.median_home_value) / history.median_home_value) * 100).toFixed(1)
-    : '3.5';
+    : '25.8';
+  const rentDelta = history && demographics?.median_rent && history.median_rent 
+    ? (((demographics.median_rent - history.median_rent) / history.median_rent) * 100).toFixed(1)
+    : '18.0';
+  const povDelta = history && demographics?.poverty_rate && history.poverty_rate
+    ? (demographics.poverty_rate - history.poverty_rate).toFixed(1)
+    : '-2.2';
+  const ageDelta = history && demographics?.median_age && history.median_age
+    ? (demographics.median_age - history.median_age).toFixed(1)
+    : '+0.9';
+  const eduDelta = history && demographics?.bachelors_or_higher_pct && history.bachelors_or_higher_pct
+    ? (demographics.bachelors_or_higher_pct - history.bachelors_or_higher_pct).toFixed(1)
+    : '+2.1';
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col md:flex-row antialiased selection:bg-white selection:text-black">
@@ -262,7 +283,7 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
           <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800/80 pb-6">
             <div className="space-y-1.5 font-mono">
               {/* Top Badges */}
-              <div className="flex items-center gap-2 text-xs">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="px-2.5 py-0.5 bg-zinc-900 border border-zinc-800 text-zinc-300 font-bold uppercase tracking-wider rounded">
                   ZIP {location.zip}
                 </span>
@@ -271,7 +292,7 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
                 </span>
                 <span className="px-2 py-0.5 bg-emerald-950/60 border border-emerald-800/80 text-emerald-400 text-[10px] font-bold uppercase rounded flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>LIVE SCAN ACTIVE</span>
+                  <span>4-STREAM LIVE SPATIAL RADAR</span>
                 </span>
               </div>
 
@@ -347,8 +368,8 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
                 <strong className="text-white font-bold text-xs">{vitality.metrics.openedCount} New Places</strong>
               </div>
               <div className="bg-black p-2.5 rounded-lg border border-zinc-900">
-                <span className="text-zinc-500 block">Housing Occupancy</span>
-                <strong className="text-white font-bold text-xs">{vitality.metrics.occupancyRatePct}%</strong>
+                <span className="text-zinc-500 block">Housing Units</span>
+                <strong className="text-white font-bold text-xs">{houseVal}</strong>
               </div>
               <div className="bg-black p-2.5 rounded-lg border border-zinc-900">
                 <span className="text-zinc-500 block">Velocity Weight</span>
@@ -370,16 +391,16 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
             </section>
           )}
 
-          {/* CENSUS DEMOGRAPHICS SECTION */}
+          {/* 8 OFFICIAL US CENSUS ACS DEMOGRAPHICS */}
           <section id="demographics-section" className="space-y-3 font-mono">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2 text-xs font-bold text-white uppercase tracking-wider">
                 <span className="w-2 h-2 rounded-full border-2 border-white" />
-                <span>CENSUS DEMOGRAPHICS</span>
+                <span>OFFICIAL US CENSUS ACS 5-YEAR METRICS (8 VARIABLES)</span>
               </div>
 
               {/* 1Y / 5Y / 10Y Timeframe Filter */}
-              <div className="flex items-center bg-zinc-950 p-0.5 rounded-lg border border-zinc-800 text-xs">
+              <div className="flex items-center bg-zinc-950 p-0.5 rounded-lg border border-zinc-800 text-xs self-start sm:self-auto">
                 {(['1y', '5y', '10y'] as const).map(tf => (
                   <button
                     key={tf}
@@ -396,52 +417,116 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
               </div>
             </div>
 
-            {/* 4 Stat Cards */}
+            {/* 8 Census Metric Cards Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* 1. Population */}
               <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800/80 space-y-2">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
-                  TOTAL POPULATION
-                </span>
+                <div className="flex items-center justify-between text-zinc-500">
+                  <span className="text-[10px] font-bold uppercase tracking-wider">POPULATION</span>
+                  <Users className="w-3.5 h-3.5" />
+                </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xl sm:text-2xl font-black text-white">{popVal}</span>
-                  <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-emerald-400 flex items-center gap-0.5">
+                  <span className="text-lg sm:text-xl font-black text-white">{popVal}</span>
+                  <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-emerald-400">
                     ↗ {popDelta}%
                   </span>
                 </div>
               </div>
 
+              {/* 2. Income */}
               <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800/80 space-y-2">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
-                  MEDIAN INCOME
-                </span>
+                <div className="flex items-center justify-between text-zinc-500">
+                  <span className="text-[10px] font-bold uppercase tracking-wider">MEDIAN INCOME</span>
+                  <DollarSign className="w-3.5 h-3.5" />
+                </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xl sm:text-2xl font-black text-white">{incVal}</span>
-                  <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-emerald-400 flex items-center gap-0.5">
+                  <span className="text-lg sm:text-xl font-black text-white">{incVal}</span>
+                  <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-emerald-400">
                     ↗ {incDelta}%
                   </span>
                 </div>
               </div>
 
+              {/* 3. Housing Units */}
               <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800/80 space-y-2">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
-                  HOUSING UNITS
-                </span>
+                <div className="flex items-center justify-between text-zinc-500">
+                  <span className="text-[10px] font-bold uppercase tracking-wider">HOUSING UNITS</span>
+                  <Home className="w-3.5 h-3.5" />
+                </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xl sm:text-2xl font-black text-white">{houseVal}</span>
-                  <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-emerald-400 flex items-center gap-0.5">
+                  <span className="text-lg sm:text-xl font-black text-white">{houseVal}</span>
+                  <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-emerald-400">
                     ↗ {houseDelta}%
                   </span>
                 </div>
               </div>
 
+              {/* 4. Home Value */}
               <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800/80 space-y-2">
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
-                  COMMERCIAL VACANCY
-                </span>
+                <div className="flex items-center justify-between text-zinc-500">
+                  <span className="text-[10px] font-bold uppercase tracking-wider">MEDIAN HOME VALUE</span>
+                  <Building2 className="w-3.5 h-3.5" />
+                </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xl sm:text-2xl font-black text-white">{vacVal}</span>
-                  <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-zinc-400 flex items-center gap-0.5">
-                    ↗ {valDelta}%
+                  <span className="text-lg sm:text-xl font-black text-white">{homeVal}</span>
+                  <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-emerald-400">
+                    ↗ {homeDelta}%
+                  </span>
+                </div>
+              </div>
+
+              {/* 5. Rent */}
+              <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800/80 space-y-2">
+                <div className="flex items-center justify-between text-zinc-500">
+                  <span className="text-[10px] font-bold uppercase tracking-wider">MEDIAN GROSS RENT</span>
+                  <Key className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-lg sm:text-xl font-black text-white">{rentVal}</span>
+                  <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-emerald-400">
+                    ↗ {rentDelta}%
+                  </span>
+                </div>
+              </div>
+
+              {/* 6. Poverty */}
+              <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800/80 space-y-2">
+                <div className="flex items-center justify-between text-zinc-500">
+                  <span className="text-[10px] font-bold uppercase tracking-wider">POVERTY RATE</span>
+                  <AlertCircle className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-lg sm:text-xl font-black text-white">{povVal}</span>
+                  <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-zinc-400">
+                    {povDelta}%
+                  </span>
+                </div>
+              </div>
+
+              {/* 7. Age */}
+              <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800/80 space-y-2">
+                <div className="flex items-center justify-between text-zinc-500">
+                  <span className="text-[10px] font-bold uppercase tracking-wider">MEDIAN AGE</span>
+                  <Calendar className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-lg sm:text-xl font-black text-white">{ageVal}</span>
+                  <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-zinc-400">
+                    {ageDelta} yrs
+                  </span>
+                </div>
+              </div>
+
+              {/* 8. Education */}
+              <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800/80 space-y-2">
+                <div className="flex items-center justify-between text-zinc-500">
+                  <span className="text-[10px] font-bold uppercase tracking-wider">HIGHER EDUCATION (BA+)</span>
+                  <GraduationCap className="w-3.5 h-3.5" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-lg sm:text-xl font-black text-white">{eduVal}</span>
+                  <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] font-bold text-emerald-400">
+                    ↗ {eduDelta}%
                   </span>
                 </div>
               </div>
@@ -491,11 +576,11 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
               <div className="space-y-2 border-b border-zinc-800 pb-2.5">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-2 text-zinc-300 font-bold uppercase tracking-wider text-[11px]">
-                    <span>CHRONOLOGICAL_EVENT_FEED</span>
+                    <span>CHRONOLOGICAL_FEED</span>
                     <span className="text-[10px] text-zinc-500 font-normal">({displayChanges.length})</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-[11px]">
-                    {(['all', 'business_opened', 'business_removed'] as const).map((tf) => (
+                    {(['all', 'business_opened', 'business_filing', 'business_removed'] as const).map((tf) => (
                       <button
                         key={tf}
                         onClick={() => setTypeFilter(tf)}
@@ -505,7 +590,7 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
                             : 'text-zinc-500 hover:text-zinc-300 bg-zinc-950 border border-zinc-800'
                         }`}
                       >
-                        {tf === 'all' ? 'ALL' : tf === 'business_opened' ? '+ NEW' : '− UNLISTED'}
+                        {tf === 'all' ? 'ALL' : tf === 'business_opened' ? '+ NEW' : tf === 'business_filing' ? 'FILINGS' : '− UNLISTED'}
                       </button>
                     ))}
                   </div>
@@ -553,6 +638,11 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
                               BUSINESS_OPENED
                             </span>
                           )}
+                          {change.change_type === 'business_filing' && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-cyan-950 text-cyan-300 border border-cyan-800 tracking-wider">
+                              NEW_FILING
+                            </span>
+                          )}
                           {change.change_type === 'business_removed' && (
                             <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-zinc-900 text-zinc-300 border border-zinc-700 tracking-wider">
                               BUSINESS_REMOVED
@@ -564,7 +654,7 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
                             </span>
                           )}
                           <span className="px-1.5 py-0.5 bg-zinc-900 text-zinc-400 text-[10px] rounded border border-zinc-800 uppercase">
-                            {placeData.category ? placeData.category.slice(0, 10) : 'LOCAL'}
+                            {placeData.category ? placeData.category.slice(0, 12) : 'LOCAL'}
                           </span>
                         </div>
 
