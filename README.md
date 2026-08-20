@@ -10,9 +10,9 @@
 
 ---
 
-## System Architecture
+## Architecture
 
-![System Architecture](architecture.png)
+![Architecture](architecture.png)
 
 ---
 
@@ -26,6 +26,7 @@
 - **Crime & Safety Context**: FBI Crime Data Explorer state trends plus real incident heatmaps from supported official municipal Socrata portals. Unsupported cities show trend-only coverage instead of generated incidents.
 - **School Access & Education Resources**: Nearby public schools from the official NCES EDGE Common Core of Data, including enrollment, grade span, student/teacher ratios, distance, and a transparent access/resources index.
 - **Dated Street Imagery**: Before/after comparison of compatible crowdsourced KartaView captures, with capture dates, source links, and explicit no-coverage states.
+- **AI Neighborhood Assistant (`/ai`)**: Ask ZIP-specific questions and receive structured answers with a conclusion, evidence sections, demographic context, and recent map-record signals.
 - **1-Click Shareable Infographics**: Generate high-resolution 1200x630 dark-theme social PNGs or post directly to X with pre-formatted stats.
 
 ---
@@ -38,6 +39,7 @@
 | **Frontend** | React 19, TypeScript, Tailwind CSS v4, Lucide Icons |
 | **Map Visualization** | MapLibre GL + Carto Dark Vector Tiles |
 | **Data Sources** | US Census ACS, FBI Crime Data Explorer, municipal Socrata portals, NCES EDGE, KartaView, Overpass, Wikipedia |
+| **AI Analysis** | Groq API with Qwen 3.6 27B, server-side structured responses |
 | **Database & Auth** | Supabase (PostgreSQL with RLS) + Local Offline Fallbacks |
 
 ---
@@ -57,7 +59,10 @@ Create a `.env` file in the root directory:
 CENSUS_API_KEY=your_census_api_key_here
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+GROQ_API_KEY=your_server_side_groq_key
 ```
+
+Keep `GROQ_API_KEY` server-side. Never expose it through a `NEXT_PUBLIC_` variable.
 
 ### 3. Run Locally
 ```bash

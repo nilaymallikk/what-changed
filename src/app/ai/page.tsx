@@ -5,7 +5,7 @@ import { AreaAIChat } from '@/components/AreaAIChat';
 
 const pageUrl = 'https://whatchangedaround.me/ai';
 const pageDescription =
-  'Ask questions about neighborhood change by US ZIP code. Explore demographic context, recently edited local place records, evidence, and data limitations.';
+  'Ask questions about neighborhood change by US ZIP code. Explore demographic context, recently edited local place records, evidence, and source context.';
 
 export const metadata: Metadata = {
   title: 'AI Neighborhood Change Assistant by ZIP Code',
@@ -104,7 +104,7 @@ const structuredData = {
         'ZIP code neighborhood questions',
         'Structured demographic explanations',
         'Recently edited local place records',
-        'Visible source and uncertainty notes'
+        'Evidence-aware source context'
       ],
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' }
     },
@@ -213,9 +213,9 @@ export default function AINeighborhoodPage() {
               <ShieldCheck className="h-6 w-6 text-emerald-400" />
             </span>
             <div>
-              <h3 className="text-lg font-black uppercase tracking-tight">Uncertainty stays visible</h3>
+              <h3 className="text-lg font-black uppercase tracking-tight">Source context stays visible</h3>
               <p className="mt-1 max-w-3xl text-sm leading-relaxed text-zinc-400">
-                Every response ends with a data-limits note, including missing coverage, state-level fallbacks, or evidence that cannot establish a physical change.
+                Responses distinguish published estimates from record-edit signals and avoid presenting an edit timestamp as proof of a physical change.
               </p>
             </div>
           </div>

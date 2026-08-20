@@ -15,7 +15,6 @@ interface StructuredAnswer {
   headline: string;
   summary: string;
   sections: AnswerSection[];
-  limitations: string;
 }
 
 interface Message {
@@ -62,11 +61,6 @@ function AssistantResponse({ answer }: { answer: StructuredAnswer }) {
           </section>
         ))}
       </div>
-
-      <aside className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-amber-300">Data limits</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">{answer.limitations}</p>
-      </aside>
     </div>
   );
 }
