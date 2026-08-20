@@ -26,6 +26,9 @@ import { VitalityRadarChart } from '@/components/VitalityRadarChart';
 import { MigrationFlowWidget } from '@/components/MigrationFlowWidget';
 import { AIAudioBriefing } from '@/components/AIAudioBriefing';
 import { GroundVerifyModal } from '@/components/GroundVerifyModal';
+import { SafetyHeatmap } from '@/components/SafetyHeatmap';
+import { EducationQualityCard } from '@/components/EducationQualityCard';
+import { BeforeAfterStreetView } from '@/components/BeforeAfterStreetView';
 
 interface Props {
   zip: string;
@@ -304,7 +307,7 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
                 </span>
                 <span className="px-2 py-0.5 bg-emerald-950/60 border border-emerald-800/80 text-emerald-400 text-[10px] font-bold uppercase rounded flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>4-STREAM LIVE SPATIAL RADAR</span>
+                  <span>7-STREAM LIVE SPATIAL RADAR</span>
                 </span>
               </div>
 
@@ -555,6 +558,11 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
 
           {/* WHO'S MOVING IN MIGRATION FLOW WIDGET */}
           <MigrationFlowWidget location={location} demographics={demographics} />
+
+          {/* SAFETY, EDUCATION, AND DATED STREET IMAGERY */}
+          <SafetyHeatmap location={location} />
+          <EducationQualityCard location={location} />
+          <BeforeAfterStreetView location={location} />
 
           {/* LOWER SECTION: SPLIT VECTOR MAP & CHRONOLOGICAL FEED */}
           <div id="timeline-section" className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start pt-2">

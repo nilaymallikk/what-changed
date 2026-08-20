@@ -175,3 +175,86 @@ export interface CensusDemographics {
   updated_at?: string;
   source?: string;
 }
+
+export interface SafetyIncident {
+  id: string;
+  category: string;
+  description: string;
+  occurred_at: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  severity: number;
+  source_url?: string;
+}
+
+export interface SafetyTrendPoint {
+  year: number;
+  state_rate: number;
+  national_rate: number;
+}
+
+export interface SafetyData {
+  incidents: SafetyIncident[];
+  incident_source: string | null;
+  incident_coverage: string;
+  violent_crime: SafetyTrendPoint[];
+  property_crime: SafetyTrendPoint[];
+  latest_year: number | null;
+  state_vs_national_pct: number | null;
+  year_over_year_pct: number | null;
+  source: string;
+  methodology: string;
+}
+
+export interface NearbySchool {
+  nces_id: string;
+  name: string;
+  district: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  level: string;
+  grades: string;
+  enrollment: number | null;
+  teachers_fte: number | null;
+  student_teacher_ratio: number | null;
+  free_reduced_lunch_pct: number | null;
+  charter: boolean;
+  latitude: number;
+  longitude: number;
+  distance_km: number;
+  resource_index: number;
+}
+
+export interface EducationData {
+  schools: NearbySchool[];
+  access_index: number;
+  school_count: number;
+  average_student_teacher_ratio: number | null;
+  source: string;
+  school_year: string;
+  methodology: string;
+}
+
+export interface StreetViewCapture {
+  id: string;
+  image_url: string;
+  captured_at: string;
+  latitude: number;
+  longitude: number;
+  heading: number | null;
+  distance_m: number | null;
+  sequence_id: string | null;
+  source_url: string;
+}
+
+export interface StreetViewData {
+  before: StreetViewCapture | null;
+  after: StreetViewCapture | null;
+  captures_found: number;
+  source: string;
+  coverage: string;
+  methodology: string;
+}
