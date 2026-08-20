@@ -8,6 +8,7 @@ import {
   Landmark, Activity, ChevronDown 
 } from 'lucide-react';
 import { isValidUSZip } from '../services/geocoding';
+import { AreaAIChat } from '../components/AreaAIChat';
 
 interface PreviewItem {
   id: string;
@@ -237,6 +238,8 @@ export default function Homepage() {
 
         </div>
       </section>
+
+      <AreaAIChat />
 
       {/* METRIC COUNTER TICKER */}
       <section className="border-b border-zinc-800 bg-zinc-950 py-5 px-4">

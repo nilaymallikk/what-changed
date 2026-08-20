@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Compass } from 'lucide-react';
+import { Bot, Compass } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 
 export const Header: React.FC = () => {
@@ -23,7 +23,7 @@ export const Header: React.FC = () => {
         <Link href="/" className="flex items-center gap-3 group">
           <BrandLogo className="w-8 h-8 group-hover:scale-105 transition-transform" />
           <div>
-            <span className="text-sm sm:text-base font-black tracking-wider text-white uppercase font-sans">
+            <span className="hidden text-sm font-black uppercase tracking-wider text-white sm:inline sm:text-base font-sans">
               WHAT CHANGED <span className="text-zinc-400">AROUND ME</span>
             </span>
           </div>
@@ -31,6 +31,19 @@ export const Header: React.FC = () => {
 
         {/* Navigation Links */}
         <nav className="flex items-center gap-2 sm:gap-4 font-mono text-xs">
+          <Link
+            href="/ai"
+            className={`btn-interactive flex items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all ${
+              pathname === '/ai'
+                ? 'bg-white text-black'
+                : 'text-zinc-400 hover:bg-zinc-900 hover:text-white'
+            }`}
+          >
+            <Bot className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Ask AI</span>
+            <span className="sm:hidden">AI</span>
+          </Link>
+
           <Link
             href="/compare"
             className="btn-interactive px-3 py-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all flex items-center gap-1.5"
