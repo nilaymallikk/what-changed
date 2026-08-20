@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { History, Play, Pause, RotateCcw, SplitSquareVertical } from 'lucide-react';
+import { History, Play, Pause, RotateCcw, SplitSquareVertical, Satellite, Map as MapIcon } from 'lucide-react';
 import type { Change, GeoLocation } from '../types';
 
 interface MapComponentProps {
@@ -21,6 +21,40 @@ const TIMELINE_ERAS = [
   { id: 'legacy', label: '2020–2022', yearRange: 'Baseline Snapshot' }
 ];
 
+type BasemapMode = 'satellite' | 'street';
+
+function createBasemapStyle(mode: BasemapMode): maplibregl.StyleSpecification {
+  if (mode === 'satellite') {
+    return {
+      version: 8,
+      sources: {
+        satellite: {
+          type: 'raster',
+          tiles: [
+            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+          ],
+          tileSize: 256,
+          attribution: 'Esri, Maxar, Earthstar Geographics, and the GIS User Community'
+        }
+      },
+      layers: [{ id: 'satellite-layer', type: 'raster', source: 'satellite', minzoom: 0, maxzoom: 20 }]
+    };
+  }
+
+  return {
+    version: 8,
+    sources: {
+      'carto-dark': {
+        type: 'raster',
+        tiles: ['https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png'],
+        tileSize: 256,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+      }
+    },
+    layers: [{ id: 'carto-dark-layer', type: 'raster', source: 'carto-dark', minzoom: 0, maxzoom: 20 }]
+  };
+}
+
 export const MapComponent: React.FC<MapComponentProps> = ({
   location,
   changes,
@@ -29,41 +63,25 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   showTimeMachine = true
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
+  const compareMapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
+  const compareMap = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
+  const compareMarkersRef = useRef<maplibregl.Marker[]>([]);
+  const appliedBasemap = useRef<BasemapMode>('satellite');
 
   const [activeEra, setActiveEra] = useState<string>('all');
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isSwipeMode, setIsSwipeMode] = useState<boolean>(false);
   const [sliderPos, setSliderPos] = useState<number>(50); // 0 - 100%
+  const [basemapMode, setBasemapMode] = useState<BasemapMode>('satellite');
 
   useEffect(() => {
     if (!mapContainer.current) return;
 
     map.current = new maplibregl.Map({
       container: mapContainer.current,
-      style: {
-        version: 8,
-        sources: {
-          'carto-dark': {
-            type: 'raster',
-            tiles: [
-              'https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png'
-            ],
-            tileSize: 256,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          }
-        },
-        layers: [
-          {
-            id: 'carto-dark-layer',
-            type: 'raster',
-            source: 'carto-dark',
-            minzoom: 0,
-            maxzoom: 20
-          }
-        ]
-      },
+      style: createBasemapStyle(appliedBasemap.current),
       center: [location.longitude, location.latitude],
       zoom: 13.8,
     });
@@ -77,6 +95,48 @@ export const MapComponent: React.FC<MapComponentProps> = ({
       }
     };
   }, [location.latitude, location.longitude]);
+
+  useEffect(() => {
+    if (!map.current || appliedBasemap.current === basemapMode) return;
+    map.current.setStyle(createBasemapStyle(basemapMode));
+    appliedBasemap.current = basemapMode;
+  }, [basemapMode]);
+
+  useEffect(() => {
+    if (!isSwipeMode || !compareMapContainer.current || !map.current) return;
+
+    const comparisonMode: BasemapMode = basemapMode === 'satellite' ? 'street' : 'satellite';
+    const comparison = new maplibregl.Map({
+      container: compareMapContainer.current,
+      style: createBasemapStyle(comparisonMode),
+      center: map.current.getCenter(),
+      zoom: map.current.getZoom(),
+      bearing: map.current.getBearing(),
+      pitch: map.current.getPitch(),
+      interactive: false,
+      attributionControl: false
+    });
+    compareMap.current = comparison;
+
+    const synchronize = () => {
+      if (!map.current || !compareMap.current) return;
+      compareMap.current.jumpTo({
+        center: map.current.getCenter(),
+        zoom: map.current.getZoom(),
+        bearing: map.current.getBearing(),
+        pitch: map.current.getPitch()
+      });
+    };
+
+    map.current.on('move', synchronize);
+    comparison.once('load', synchronize);
+
+    return () => {
+      map.current?.off('move', synchronize);
+      comparison.remove();
+      compareMap.current = null;
+    };
+  }, [basemapMode, isSwipeMode, location.latitude, location.longitude]);
 
   // Filter changes based on active Time Machine Era
   const filteredChanges = useMemo(() => {
@@ -94,6 +154,8 @@ export const MapComponent: React.FC<MapComponentProps> = ({
 
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
+    compareMarkersRef.current.forEach(marker => marker.remove());
+    compareMarkersRef.current = [];
 
     filteredChanges.forEach(change => {
       const placeData = change.new_data || change.old_data;
@@ -172,6 +234,13 @@ export const MapComponent: React.FC<MapComponentProps> = ({
       });
 
       markersRef.current.push(marker);
+
+      if (compareMap.current) {
+        const comparisonMarker = new maplibregl.Marker({ element: el.cloneNode(true) as HTMLElement })
+          .setLngLat([placeData.longitude, placeData.latitude])
+          .addTo(compareMap.current);
+        compareMarkersRef.current.push(comparisonMarker);
+      }
     });
 
     if (selectedChangeId) {
@@ -185,7 +254,15 @@ export const MapComponent: React.FC<MapComponentProps> = ({
         });
       }
     }
-  }, [filteredChanges, selectedChangeId, onSelectChange]);
+  }, [
+    filteredChanges,
+    selectedChangeId,
+    onSelectChange,
+    isSwipeMode,
+    basemapMode,
+    location.latitude,
+    location.longitude
+  ]);
 
   // Automated Timeline Playback Loop
   useEffect(() => {
@@ -201,18 +278,84 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     return () => clearInterval(interval);
   }, [isPlaying]);
 
+  const updateSplitPosition = (clientX: number) => {
+    const bounds = mapContainer.current?.getBoundingClientRect();
+    if (!bounds || bounds.width === 0) return;
+
+    const nextPosition = ((clientX - bounds.left) / bounds.width) * 100;
+    setSliderPos(Math.min(95, Math.max(5, nextPosition)));
+  };
+
+  const handleSplitPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    updateSplitPosition(event.clientX);
+  };
+
+  const handleSplitPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    updateSplitPosition(event.clientX);
+  };
+
+  const handleSplitKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    setSliderPos(position => Math.min(95, Math.max(5, position + (event.key === 'ArrowLeft' ? -2 : 2))));
+  };
+
   return (
     <div className="relative w-full rounded-xl overflow-hidden shadow-2xl border border-zinc-800 flex flex-col font-mono">
       
       {/* Map Viewport */}
       <div className="relative w-full h-[380px] lg:h-[480px]">
         <div ref={mapContainer} className="w-full h-full" />
+
+        {isSwipeMode && (
+          <div
+            className="absolute inset-0 z-[1] pointer-events-none will-change-[clip-path]"
+            style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
+            aria-hidden="true"
+          >
+            <div ref={compareMapContainer} className="w-full h-full" />
+          </div>
+        )}
         
         {/* Top Badges and Mode Switcher */}
         <div className="absolute top-3 left-3 flex flex-wrap items-center gap-2 z-10">
           <div className="bg-black/85 backdrop-blur-md px-3 py-1 rounded-lg border border-zinc-800 text-[11px] text-zinc-300 font-mono flex items-center gap-2 shadow-lg">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span>Active Vector Nodes ({filteredChanges.length})</span>
+          </div>
+
+          <div className="flex overflow-hidden rounded-lg border border-zinc-700 bg-black/85 p-0.5 shadow-lg backdrop-blur-md">
+            <button
+              type="button"
+              onClick={() => setBasemapMode('satellite')}
+              aria-pressed={basemapMode === 'satellite'}
+              className={`btn-interactive flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[10px] font-bold uppercase transition-colors ${
+                basemapMode === 'satellite'
+                  ? 'bg-white text-black'
+                  : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+              }`}
+              title="Show satellite imagery"
+            >
+              <Satellite className="h-3.5 w-3.5" />
+              Satellite
+            </button>
+            <button
+              type="button"
+              onClick={() => setBasemapMode('street')}
+              aria-pressed={basemapMode === 'street'}
+              className={`btn-interactive flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[10px] font-bold uppercase transition-colors ${
+                basemapMode === 'street'
+                  ? 'bg-white text-black'
+                  : 'text-zinc-400 hover:bg-zinc-800 hover:text-white'
+              }`}
+              title="Show the street map"
+            >
+              <MapIcon className="h-3.5 w-3.5" />
+              Street
+            </button>
           </div>
 
           <button
@@ -222,47 +365,38 @@ export const MapComponent: React.FC<MapComponentProps> = ({
                 ? 'bg-white text-black border-white'
                 : 'bg-black/85 text-zinc-300 border-zinc-800 hover:text-white'
             }`}
-            title="Toggle Split-Screen Before/After Diff Lens"
+            title="Compare synchronized satellite and street maps"
           >
             <SplitSquareVertical className="w-3.5 h-3.5" />
-            <span>{isSwipeMode ? 'DIFF LENS: ON' : 'SPLIT DIFF LENS'}</span>
+            <span>{isSwipeMode ? 'SPLIT VIEW: ON' : 'SPLIT VIEW'}</span>
           </button>
         </div>
 
-        {/* Swipe Comparison Slider Overlay */}
+        {/* Synchronized Satellite / Street Comparison */}
         {isSwipeMode && (
-          <div className="absolute inset-0 pointer-events-none z-20 flex">
-            {/* Left Past Overlay */}
-            <div
-              className="h-full border-r-2 border-white bg-emerald-950/10 backdrop-blur-[1px] relative"
-              style={{ width: `${sliderPos}%` }}
-            >
-              <div className="absolute bottom-4 left-4 bg-black/90 px-2.5 py-1 rounded border border-zinc-800 text-[10px] font-bold text-zinc-400 uppercase">
-                ◀ 2022 BASELINE
-              </div>
+          <div className="absolute inset-0 z-20 pointer-events-none">
+            <div className="absolute bottom-14 left-4 rounded border border-zinc-700 bg-black/90 px-2.5 py-1 text-[10px] font-bold uppercase text-white shadow-lg backdrop-blur-md">
+              ◀ {basemapMode === 'satellite' ? 'Street map' : 'Satellite imagery'}
+            </div>
+            <div className="absolute bottom-14 right-4 rounded border border-zinc-700 bg-black/90 px-2.5 py-1 text-[10px] font-bold uppercase text-white shadow-lg backdrop-blur-md">
+              {basemapMode === 'satellite' ? 'Satellite imagery' : 'Street map'} ▶
             </div>
 
-            {/* Right Present Overlay */}
-            <div className="flex-1 h-full relative">
-              <div className="absolute bottom-4 right-4 bg-black/90 px-2.5 py-1 rounded border border-emerald-800 text-[10px] font-bold text-emerald-400 uppercase">
-                2026 LIVE DIFF ▶
-              </div>
-            </div>
-
-            {/* Interactive Slider Thumb */}
             <div
-              className="absolute top-0 bottom-0 pointer-events-auto cursor-ew-resize flex items-center justify-center -ml-3 z-30"
+              className="absolute inset-y-0 z-30 -ml-4 flex w-8 touch-none cursor-ew-resize items-center justify-center pointer-events-auto focus-visible:outline-none"
               style={{ left: `${sliderPos}%` }}
+              role="slider"
+              tabIndex={0}
+              aria-label="Adjust satellite and street map split"
+              aria-valuemin={5}
+              aria-valuemax={95}
+              aria-valuenow={Math.round(sliderPos)}
+              onPointerDown={handleSplitPointerDown}
+              onPointerMove={handleSplitPointerMove}
+              onKeyDown={handleSplitKeyDown}
             >
-              <input
-                type="range"
-                min="10"
-                max="90"
-                value={sliderPos}
-                onChange={(e) => setSliderPos(Number(e.target.value))}
-                className="absolute inset-0 opacity-0 cursor-ew-resize w-6 h-full"
-              />
-              <div className="w-6 h-10 rounded-full bg-white border-2 border-black flex items-center justify-center shadow-2xl">
+              <div className="absolute inset-y-0 w-0.5 bg-white shadow-[0_0_8px_rgba(0,0,0,0.9)]" />
+              <div className="flex h-11 w-7 items-center justify-center rounded-full border-2 border-black bg-white shadow-2xl">
                 <div className="flex gap-0.5">
                   <span className="w-0.5 h-3 bg-black rounded" />
                   <span className="w-0.5 h-3 bg-black rounded" />
