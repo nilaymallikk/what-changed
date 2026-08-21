@@ -9,12 +9,11 @@ import {
   Users, DollarSign, Home, Key, AlertCircle, Calendar, GraduationCap,
   ShieldCheck, CheckCircle2
 } from 'lucide-react';
-import type { GeoLocation, Change, AISummary, CensusDemographics } from '@/types';
+import type { GeoLocation, Change, CensusDemographics } from '@/types';
 
 import { defaultGeocodingProvider } from '@/services/geocoding';
 import { overpassProvider } from '@/services/providers/OverpassProvider';
 import { detectPlaceChanges } from '@/services/changeDetection';
-import { generateAISummary } from '@/services/aiSummary';
 import { getAreaFallbackData } from '@/services/demoData';
 import { localDB } from '@/services/supabaseClient';
 import { censusService } from '@/services/censusService';
@@ -24,7 +23,6 @@ import { Sidebar } from '@/components/Sidebar';
 import { ShareModal } from '@/components/ShareModal';
 import { VitalityRadarChart } from '@/components/VitalityRadarChart';
 import { MigrationFlowWidget } from '@/components/MigrationFlowWidget';
-import { AIAudioBriefing } from '@/components/AIAudioBriefing';
 import { GroundVerifyModal } from '@/components/GroundVerifyModal';
 import { SafetyHeatmap } from '@/components/SafetyHeatmap';
 import { EducationQualityCard } from '@/components/EducationQualityCard';
@@ -37,7 +35,6 @@ interface Props {
 export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
   const [location, setLocation] = useState<GeoLocation | null>(null);
   const [changes, setChanges] = useState<Change[]>([]);
-  const [aiSummary, setAISummary] = useState<AISummary | null>(null);
   const [demographics, setDemographics] = useState<CensusDemographics | null>(null);
   const [selectedChangeId, setSelectedChangeId] = useState<string | null>(null);
   const [activeNavSection, setActiveNavSection] = useState<'overview' | 'demographics' | 'timeline'>('overview');
@@ -83,16 +80,13 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
       localDB.saveArea(areaObj);
 
       const storedChanges = localDB.getChanges(areaId);
-      const storedSummary = localDB.getAISummary(areaId);
 
       // Instant optimistic paint with stored or baseline data
-      if (!forceRefresh && storedChanges.length >= 3 && storedSummary) {
+      if (!forceRefresh && storedChanges.length >= 3) {
         setChanges(storedChanges);
-        setAISummary(storedSummary);
       } else {
         const initialFallback = getAreaFallbackData(geoLoc, null);
         setChanges(storedChanges.length > 0 ? storedChanges : initialFallback.changes);
-        setAISummary(storedSummary || initialFallback.aiSummary);
       }
       setLoading(false);
 
@@ -128,23 +122,11 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
         localDB.saveSnapshot(newSnapshot);
         localDB.saveChanges(detectedChanges);
 
-        const newAISummary = await generateAISummary({
-          areaId,
-          zip: geoLoc.zip,
-          city: geoLoc.city,
-          state: geoLoc.state,
-          changes: detectedChanges
-        });
-        localDB.saveAISummary(newAISummary);
-
         setChanges(detectedChanges);
-        setAISummary(newAISummary);
-      } else if (!storedSummary) {
+      } else if (storedChanges.length === 0) {
         const enrichedFallback = getAreaFallbackData(geoLoc, censusData);
         localDB.saveChanges(enrichedFallback.changes);
-        localDB.saveAISummary(enrichedFallback.aiSummary);
         setChanges(enrichedFallback.changes);
-        setAISummary(enrichedFallback.aiSummary);
       }
 
     } catch (err: any) {
@@ -154,7 +136,6 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
         const fallback = getAreaFallbackData(geoLoc, null);
         setLocation(geoLoc);
         setChanges(fallback.changes);
-        setAISummary(fallback.aiSummary);
       } catch {
         setError(err.message || "Failed to load area details");
       }
@@ -405,14 +386,6 @@ export const AreaDashboardClient: React.FC<Props> = ({ zip }) => {
 
           </div>
 
-          {/* 60-SECOND AI AUDIO BRIEFING CARD */}
-          {aiSummary && (
-            <AIAudioBriefing
-              text={aiSummary.summary}
-              headline={aiSummary.headline}
-              locationName={`${location.city}, ${location.state}`}
-            />
-          )}
 
           {/* 8 OFFICIAL US CENSUS ACS DEMOGRAPHICS */}
           <section id="demographics-section" className="space-y-3 font-mono">

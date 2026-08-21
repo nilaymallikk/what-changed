@@ -100,7 +100,6 @@ const jsonLd = {
     '5-Axis Neighborhood Vitality Index Polygon Chart',
     'Interactive Before/After Time Machine & Split Diff Lens',
     'Who is Moving In? Migration Inflow Corridor Analytics',
-    '60-Second AI Neural Audio Briefings',
     'Ground Truth Community Verification',
     'Head-to-Head ZIP Code Benchmark Comparison',
     'Nationwide 50-State Metro Directory'
