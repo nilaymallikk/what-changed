@@ -27,4 +27,6 @@ out
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
+newfeat.md
+.claude/
+.claude-flow/

@@ -39,7 +39,7 @@
 | **Frontend** | React 19, TypeScript, Tailwind CSS v4, Lucide Icons |
 | **Map Visualization** | MapLibre GL + Carto Dark Vector Tiles |
 | **Data Sources** | US Census ACS, FBI Crime Data Explorer, municipal Socrata portals, NCES EDGE, KartaView, Overpass, Wikipedia |
-| **AI Analysis** | Groq API with Qwen 3.6 27B, server-side structured responses |
+| **AI Analysis** | Groq API (GPT OSS 120B / 20B with multi-model failover), server-side structured responses |
 | **Database & Auth** | Supabase (PostgreSQL with RLS) + Local Offline Fallbacks |
 
 ---
