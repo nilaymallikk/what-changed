@@ -38,8 +38,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <Link href="/" className="flex items-center gap-3 group">
             <BrandLogo className="w-7 h-7 shrink-0 group-hover:scale-105 transition-transform" />
             <div>
-              <h2 className="text-sm font-black tracking-tight text-white uppercase group-hover:text-zinc-200 transition-colors font-sans leading-none">
-                WHAT CHANGED
+              <h2 className="text-sm font-black tracking-tight text-white group-hover:text-zinc-200 transition-colors font-sans leading-none">
+                WhatChangedAround<span className="text-zinc-400">.Me</span>
               </h2>
               <span className="text-[10px] text-zinc-500 tracking-wider block mt-1 font-mono uppercase">
                 Spatial Intelligence

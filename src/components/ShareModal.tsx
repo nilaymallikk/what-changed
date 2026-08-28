@@ -83,7 +83,7 @@ Built by @nilaymallikX on What Changed Around Me:`;
       // Gradient Accent Header
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 24px monospace';
-      ctx.fillText(`WHAT CHANGED AROUND ME  •  ZIP ${location.zip}`, 70, 90);
+      ctx.fillText(`WhatChangedAround.Me  •  ZIP ${location.zip}`, 70, 90);
 
       // Location Headline
       ctx.fillStyle = '#ffffff';
@@ -205,9 +205,9 @@ Built by @nilaymallikX on What Changed Around Me:`;
         >
           {/* Card Top */}
           <div className="flex items-center justify-between text-xs">
-            <span className="font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+            <span className="font-bold text-white tracking-wider flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-white" />
-              <span>WHAT CHANGED AROUND ME</span>
+              <span>WhatChangedAround.Me</span>
             </span>
             <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 font-bold">
               ZIP {location.zip}

@@ -23,8 +23,8 @@ export const Header: React.FC = () => {
         <Link href="/" className="flex items-center gap-3 group">
           <BrandLogo className="w-8 h-8 group-hover:scale-105 transition-transform" />
           <div>
-            <span className="hidden text-sm font-black uppercase tracking-wider text-white sm:inline sm:text-base font-sans">
-              WHAT CHANGED <span className="text-zinc-400">AROUND ME</span>
+            <span className="hidden text-sm font-black tracking-wider text-white sm:inline sm:text-base font-sans">
+              WhatChangedAround<span className="text-zinc-400">.Me</span>
             </span>
           </div>
         </Link>

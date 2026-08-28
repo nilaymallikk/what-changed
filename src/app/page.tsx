@@ -547,7 +547,7 @@ export default function Homepage() {
       <footer className="border-t border-zinc-900 py-10 text-xs text-zinc-500 font-mono relative z-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-1 text-center md:text-left">
-            <p className="text-white font-bold tracking-wider uppercase">What Changed Around Me</p>
+            <p className="text-white font-bold tracking-wider">WhatChangedAround<span className="text-zinc-400">.Me</span></p>
             <p className="text-zinc-500 text-[11px]">
               Built by{' '}
               <a
